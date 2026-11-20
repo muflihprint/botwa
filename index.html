@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp Auto-Reply Dashboard — Muflih Print</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; max-width: 780px; margin: 1.5rem auto; padding: 0 1rem; background: #f8fafc; color: #0f172a; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .hidden { display: none !important; }
+    #qrImage { width: 230px; height: 230px; border: 1px solid #cbd5e1; padding: 8px; border-radius: 10px; }
+    .header-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 1rem; margin-bottom: 1rem; }
+    label { display: block; font-size: 0.85rem; font-weight: 600; margin-top: 0.75rem; color: #334155; }
+    input[type="text"], textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; margin-top: 4px; font-family: inherit; font-size: 16px; }
+    .kw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 600px) { .kw-grid { grid-template-columns: 1fr; } }
+    button, .btn-link { background: #16a34a; color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    button:hover, .btn-link:hover { background: #15803d; }
+    button.secondary { background: #475569; }
+    button.edit { background: #2563eb; }
+    button.danger { background: #dc2626; }
+    button.sm, .btn-link.sm { padding: 7px 11px; font-size: 0.8rem; }
+    .rule-item { border: 1px solid #e2e8f0; background: #f8fafc; border-radius: 8px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .paused-item { border: 1px solid #fed7aa; background: #fff7ed; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .paused-item.replied { border-color: #cbd5e1; background: #f8fafc; }
+    .wa-phone-link { color: #15803d; font-weight: 700; text-decoration: none; border-bottom: 1px dashed #16a34a; }
+    .msg-preview { background: #fff; border: 1px solid #fed7aa; border-radius: 6px; padding: 6px 10px; margin-top: 6px; font-size: 0.85rem; color: #1e293b; }
+    .paused-item.replied .msg-preview { border-color: #e2e8f0; color: #64748b; }
+    .badge-wait { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #dc2626; color: #fff; text-transform: uppercase; }
+    .badge-done { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #dcfce7; color: #15803d; text-transform: uppercase; }
+    .badge-exact { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: #dbeafe; color: #1d4ed8; text-transform: uppercase; }
+    .badge-contains { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: #dcfce7; color: #15803d; text-transform: uppercase; }
+    .badge-default { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: #fef3c7; color: #b45309; text-transform: uppercase; }
+    .badge-admin { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: #ffedd5; color: #c2410c; text-transform: uppercase; }
+    .kw-chip { display: inline-block; font-size: 0.78rem; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: #e2e8f0; color: #1e293b; margin: 2px 4px 2px 0; }
+    .kw-row { margin-bottom: 5px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+    .log-box { max-height: 280px; overflow-y: auto; background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 8px; font-size: 0.85rem; }
+    .log-entry { border-bottom: 1px solid #1e293b; padding: 8px 0; }
+    .var-hint { font-size: 0.8rem; color: #64748b; margin-top: 4px; }
+    code { background: #f1f5f9; padding: 2px 5px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+  <!-- Tahap 1: Scan QR via Supabase -->
+  <div id="qrSection" class="card" style="text-align: center;">
+    <h2>Hubungkan Nomor WhatsApp Bot</h2>
+    <p style="color: #475569;">Buka WhatsApp di HP &rarr; Perangkat Tertaut &rarr; Tautkan Perangkat</p>
+    <img id="qrImage" src="" alt="Menunggu QR Code dari Worker..." />
+    <p id="statusText" style="font-weight: 600; color: #16a34a;">Memeriksa status koneksi di Supabase...</p>
+  </div>
+
+  <!-- Tahap 2: Dashboard Auto-Reply -->
+  <div id="dashboardSection" class="hidden">
+
+    <!-- Panel Daftar Nomor Menunggu Balasan Admin -->
+    <div id="pausedCard" class="card hidden" style="border-color: #fb923c;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+        <h3 style="margin: 0; color: #c2410c;">📥 Antrean Chat Admin <span id="waitingCountBadge" class="badge-wait" style="margin-left: 6px;">0 Menunggu</span></h3>
+        <small style="color: #64748b;">Klik nomor untuk membuka chat langsung di WhatsApp</small>
+      </div>
+      <div id="pausedList"></div>
+    </div>
+
+    <div class="card">
+      <div class="header-bar">
+        <div>
+          <h2 style="margin: 0;">Auto-Reply WhatsApp (Supabase)</h2>
+          <small style="color: #64748b;">Sinkronisasi real-time antar perangkat</small>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <label style="margin: 0; display: flex; align-items: center; gap: 6px; background: #f1f5f9; padding: 8px 12px; border-radius: 8px; cursor: pointer;">
+            <input type="checkbox" id="toggleActive" checked />
+            <span>Auto-Reply Aktif</span>
+          </label>
+          <button id="btnLogout" class="danger">Putuskan WA</button>
+        </div>
+      </div>
+
+      <h3 id="formTitle" style="margin-bottom: 0.5rem;">Tambah Format Balasan Baru</h3>
+
+      <label style="display: flex; align-items: center; gap: 8px; background: #fffbeb; border: 1px solid #fde68a; padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-top: 0.5rem;">
+        <input type="checkbox" id="isDefaultCheck" />
+        <span>Jadikan sebagai <strong>Balasan Default</strong> (membalas jika tidak ada kata kunci yang cocok)</span>
+      </label>
+
+      <div id="keywordFieldsGrid" class="kw-grid">
+        <div>
+          <label for="exactKeywordInput">Kata Kunci Sama Persis (Pisahkan koma)</label>
+          <input type="text" id="exactKeywordInput" placeholder="Contoh: 1, 1." />
+        </div>
+        <div>
+          <label for="containsKeywordInput">Mengandung Kata Kunci (Pisahkan koma)</label>
+          <input type="text" id="containsKeywordInput" placeholder="Contoh: alamat, lokasi, maps" />
+        </div>
+      </div>
+
+      <label id="pauseBotLabel" style="display: flex; align-items: center; gap: 8px; background: #fff7ed; border: 1px solid #fed7aa; padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-top: 0.75rem;">
+        <input type="checkbox" id="pauseBotCheck" />
+        <span><strong>Alihkan ke Admin:</strong> Jeda balasan otomatis untuk nomor ini selama 60 menit</span>
+      </label>
+
+      <label for="replyInput">Format Pesan Balasan</label>
+      <textarea id="replyInput" rows="5" placeholder="Halo Kak *{nama}* 👋..."></textarea>
+      <div class="var-hint">Variabel: <code>{nama}</code>, <code>{nomor}</code>, <code>{pesan}</code>. Gunakan <code>*teks*</code> untuk huruf tebal.</div>
+
+      <div style="display: flex; gap: 8px; margin-top: 12px;">
+        <button id="btnAddRule">+ Simpan Aturan Balasan</button>
+        <button id="btnCancelEdit" class="secondary hidden">Batal Edit</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top: 0;">Daftar Format Balasan Aktif</h3>
+      <div id="rulesList"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top: 0;">Log Aktivitas Auto-Reply (Live)</h3>
+      <div id="logBox" class="log-box">
+        <div style="color: #94a3b8;">Memuat riwayat log...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://PROYEK-ANDA.supabase.co';
+    const SUPABASE_ANON_KEY = 'ISI_DENGAN_ANON_KEY_SUPABASE_ANDA';
+    const BOT_ID = 'bot_utama';
+
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let currentRules = [];
+    let editingRuleId = null;
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+    }
+
+    function formatWitaTime(isoStr) {
+      return new Date(isoStr).toLocaleTimeString('id-ID', {
+        timeZone: 'Asia/Makassar',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    async function loadBotConfig() {
+      const { data } = await db.from('wa_bot_config').select('*').eq('id', BOT_ID).single();
+      if (!data) return;
+
+      document.getElementById('toggleActive').checked = data.enabled;
+
+      if (data.status === 'connected') {
+        document.getElementById('qrSection').classList.add('hidden');
+        document.getElementById('dashboardSection').classList.remove('hidden');
+      } else {
+        document.getElementById('qrSection').classList.remove('hidden');
+        document.getElementById('dashboardSection').classList.add('hidden');
+        if (data.qr_code) {
+          document.getElementById('qrImage').src = data.qr_code;
+          document.getElementById('statusText').textContent = 'Silakan scan QR Code di atas.';
+        } else {
+          document.getElementById('statusText').textContent = 'Menunggu worker Baileys menghasilkan QR Code...';
+        }
+      }
+    }
+
+    async function loadRules() {
+      const { data } = await db.from('wa_rules').select('*').order('created_at', { ascending: false });
+      currentRules = data || [];
+      renderRules();
+    }
+
+    async function loadAdminQueue() {
+      const { data } = await db
+        .from('wa_admin_queue')
+        .select('*')
+        .gt('paused_until', new Date().toISOString())
+        .order('needs_reply', { ascending: false })
+        .order('updated_at', { ascending: false });
+
+      renderAdminQueue(data || []);
+    }
+
+    async function loadLogs() {
+      const { data } = await db
+        .from('wa_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(30);
+
+      const box = document.getElementById('logBox');
+      if (!data || data.length === 0) {
+        box.innerHTML = '<div style="color: #94a3b8;">Belum ada aktivitas balasan otomatis.</div>';
+        return;
+      }
+
+      box.innerHTML = data.map(log => {
+        const time = new Date(log.created_at).toLocaleTimeString('id-ID', { timeZone: 'Asia/Makassar' });
+        if (log.log_type === 'customer_admin_msg') {
+          return `
+            <div class="log-entry">
+              <div style="color: #fb923c; font-size: 0.78rem;">[${time}] 💬 Pesan untuk Admin dari <strong>${escapeHtml(log.sender_name)}</strong> (${escapeHtml(log.sender_number)})</div>
+              <div style="margin: 3px 0; color: #fde68a;">"${escapeHtml(log.incoming)}"</div>
+            </div>
+          `;
+        }
+        return `
+          <div class="log-entry">
+            <div style="color: #38bdf8; font-size: 0.78rem;">[${time}] Dari: <strong>${escapeHtml(log.sender_name)}</strong> (${escapeHtml(log.sender_number)}) ${log.handed_over ? '<span style="color:#fb923c;">[DIALIHKAN KE ADMIN]</span>' : ''}</div>
+            <div style="margin: 3px 0;">Pesan: "${escapeHtml(log.incoming)}"</div>
+            <div style="color: #4ade80; white-space: pre-line;">&rarr; Dibalas otomatis:\n${escapeHtml(log.reply)}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderAdminQueue(list) {
+      const card = document.getElementById('pausedCard');
+      const container = document.getElementById('pausedList');
+      const countBadge = document.getElementById('waitingCountBadge');
+
+      if (!list || list.length === 0) {
+        card.classList.add('hidden');
+        container.innerHTML = '';
+        return;
+      }
+
+      const waitingCount = list.filter(u => u.needs_reply).length;
+      countBadge.textContent = `${waitingCount} Menunggu Balasan`;
+      countBadge.style.display = waitingCount > 0 ? 'inline-block' : 'none';
+
+      card.classList.remove('hidden');
+      container.innerHTML = list.map(u => {
+        const waUrl = u.phone ? `https://wa.me/${u.phone}` : null;
+        const phoneDisplay = waUrl
+          ? `<a href="${waUrl}" target="_blank" rel="noopener noreferrer" class="wa-phone-link">${escapeHtml(u.display_number)} ↗</a>`
+          : `<span style="color:#64748b; font-weight:600;">${escapeHtml(u.display_number)}</span>`;
+
+        const statusBadge = u.needs_reply
+          ? `<span class="badge-wait">Menunggu Balasan${u.unread_count > 1 ? ` (${u.unread_count} chat)` : ''}</span>`
+          : `<span class="badge-done">Sudah Dibalas Admin</span>`;
+
+        const openWaButton = waUrl
+          ? `<a href="${waUrl}" target="_blank" rel="noopener noreferrer" class="btn-link sm">💬 Balas di WA</a>`
+          : '';
+
+        const msgs = Array.isArray(u.recent_messages) && u.recent_messages.length > 0
+          ? u.recent_messages.map(m => `<div style="margin-bottom:3px;"><span style="color:#64748b;font-size:0.75rem;">[${escapeHtml(m.time)} WITA]</span> "${escapeHtml(m.text)}"</div>`).join('')
+          : `<div>"${escapeHtml(u.last_message)}"</div>`;
+
+        return `
+          <div class="paused-item ${u.needs_reply ? '' : 'replied'}">
+            <div style="flex: 1; min-width: 220px;">
+              <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+                <strong>${escapeHtml(u.name)}</strong>
+                <span>(${phoneDisplay})</span>
+                ${statusBadge}
+              </div>
+              <div class="msg-preview">${msgs}</div>
+              <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">
+                Auto-reply dijeda s/d pukul ${formatWitaTime(u.paused_until)} WITA
+              </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              ${openWaButton}
+              <button class="secondary sm" onclick="resumeBotForUser('${u.jid}')">Aktifkan Bot Lagi</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function resumeBotForUser(jid) {
+      await db.from('wa_admin_queue').delete().eq('jid', jid);
+      loadAdminQueue();
+    }
+
+    function renderChips(raw) {
+      return (raw || '').split(/[,\n]+/).map(k => k.trim()).filter(Boolean)
+        .map(k => `<span class="kw-chip">${escapeHtml(k)}</span>`).join('');
+    }
+
+    function renderRules() {
+      const container = document.getElementById('rulesList');
+      if (currentRules.length === 0) {
+        container.innerHTML = '<p style="color: #64748b; font-size: 0.9rem;">Belum ada aturan balasan.</p>';
+        return;
+      }
+
+      container.innerHTML = currentRules.map(r => {
+        let headerHtml = '';
+        if (r.is_default) {
+          headerHtml = `<div class="kw-row"><span class="badge-default">Balasan Default</span><span class="kw-chip">Semua Pesan Lain</span></div>`;
+        } else {
+          if (r.exact_keywords) headerHtml += `<div class="kw-row"><span class="badge-exact">Sama Persis</span> ${renderChips(r.exact_keywords)}</div>`;
+          if (r.contains_keywords) headerHtml += `<div class="kw-row"><span class="badge-contains">Mengandung Kata</span> ${renderChips(r.contains_keywords)}</div>`;
+          if (r.pause_bot) headerHtml += `<div class="kw-row"><span class="badge-admin">Alihkan ke Admin (Jeda Bot 60 Menit)</span></div>`;
+        }
+
+        return `
+          <div class="rule-item">
+            <div style="flex: 1;">
+              ${headerHtml}
+              <div style="white-space: pre-line; font-size: 0.88rem; color: #334155; background: #fff; padding: 8px; border-radius: 6px; border: 1px solid #e2e8f0; margin-top: 6px;">${escapeHtml(r.reply)}</div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <button class="edit sm" onclick="editRule('${r.id}')">Edit</button>
+              <button class="danger sm" onclick="deleteRule('${r.id}')">Hapus</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    document.getElementById('toggleActive').addEventListener('change', async (e) => {
+      await db.from('wa_bot_config').update({ enabled: e.target.checked, updated_at: new Date().toISOString() }).eq('id', BOT_ID);
+    });
+
+    document.getElementById('isDefaultCheck').addEventListener('change', (e) => {
+      document.getElementById('keywordFieldsGrid').classList.toggle('hidden', e.target.checked);
+      document.getElementById('pauseBotLabel').classList.toggle('hidden', e.target.checked);
+      if (e.target.checked) document.getElementById('pauseBotCheck').checked = false;
+    });
+
+    function cleanCommaList(raw) {
+      return (raw || '').split(/[,\n]+/).map(k => k.trim()).filter(Boolean).join(', ');
+    }
+
+    function resetForm() {
+      editingRuleId = null;
+      document.getElementById('formTitle').textContent = 'Tambah Format Balasan Baru';
+      document.getElementById('isDefaultCheck').checked = false;
+      document.getElementById('pauseBotCheck').checked = false;
+      document.getElementById('keywordFieldsGrid').classList.remove('hidden');
+      document.getElementById('pauseBotLabel').classList.remove('hidden');
+      document.getElementById('exactKeywordInput').value = '';
+      document.getElementById('containsKeywordInput').value = '';
+      document.getElementById('replyInput').value = '';
+      document.getElementById('btnAddRule').textContent = '+ Simpan Aturan Balasan';
+      document.getElementById('btnCancelEdit').classList.add('hidden');
+    }
+
+    document.getElementById('btnCancelEdit').addEventListener('click', resetForm);
+
+    document.getElementById('btnAddRule').addEventListener('click', async () => {
+      const is_default = document.getElementById('isDefaultCheck').checked;
+      const pause_bot = is_default ? false : document.getElementById('pauseBotCheck').checked;
+      const exact_keywords = is_default ? '' : cleanCommaList(document.getElementById('exactKeywordInput').value);
+      const contains_keywords = is_default ? '' : cleanCommaList(document.getElementById('containsKeywordInput').value);
+      const reply = document.getElementById('replyInput').value.trim();
+
+      if (!reply) return alert('Format pesan balasan wajib diisi.');
+      if (!is_default && !exact_keywords && !contains_keywords) {
+        return alert('Isi minimal salah satu kolom kata kunci, atau centang Balasan Default.');
+      }
+
+      if (is_default) {
+        await db.from('wa_rules').delete().eq('is_default', true).neq('id', editingRuleId || '');
+      }
+
+      await db.from('wa_rules').upsert({
+        id: editingRuleId || 'rule_' + Date.now(),
+        exact_keywords,
+        contains_keywords,
+        is_default,
+        pause_bot,
+        reply
+      });
+
+      resetForm();
+      loadRules();
+    });
+
+    function editRule(id) {
+      const r = currentRules.find(item => item.id === id);
+      if (!r) return;
+
+      editingRuleId = id;
+      document.getElementById('formTitle').textContent = 'Edit Aturan Balasan';
+      document.getElementById('isDefaultCheck').checked = r.is_default;
+      document.getElementById('pauseBotCheck').checked = r.pause_bot;
+      document.getElementById('keywordFieldsGrid').classList.toggle('hidden', r.is_default);
+      document.getElementById('pauseBotLabel').classList.toggle('hidden', r.is_default);
+      document.getElementById('exactKeywordInput').value = r.exact_keywords || '';
+      document.getElementById('containsKeywordInput').value = r.contains_keywords || '';
+      document.getElementById('replyInput').value = r.reply;
+      document.getElementById('btnAddRule').textContent = 'Simpan Perubahan';
+      document.getElementById('btnCancelEdit').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function deleteRule(id) {
+      if (editingRuleId === id) resetForm();
+      await db.from('wa_rules').delete().eq('id', id);
+      loadRules();
+    }
+
+    document.getElementById('btnLogout').addEventListener('click', async () => {
+      if (confirm('Putuskan tautan WhatsApp dari bot ini?')) {
+        await db.from('wa_bot_config').update({ status: 'logout_requested' }).eq('id', BOT_ID);
+      }
+    });
+
+    // Inisialisasi awal & berlangganan Supabase Realtime
+    loadBotConfig();
+    loadRules();
+    loadAdminQueue();
+    loadLogs();
+
+    db.channel('dashboard-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_bot_config' }, loadBotConfig)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_rules' }, loadRules)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_admin_queue' }, loadAdminQueue)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'wa_logs' }, loadLogs)
+      .subscribe();
+  </script>
+</body>
+</html>
