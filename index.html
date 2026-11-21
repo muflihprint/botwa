@@ -66,13 +66,16 @@
  .kw-row { margin-bottom: 5px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 
  /* Log Aktivitas */
- .log-box { max-height: 300px; overflow-y: auto; background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 8px; font-size: 0.85rem; }
+ .log-box { max-height: 380px; overflow-y: auto; background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 8px; font-size: 0.85rem; }
  .log-entry { border-bottom: 1px solid #1e293b; padding: 8px 0; }
  .log-entry.admin-direct { border-left: 3px solid #a855f7; padding-left: 10px; background: rgba(168, 85, 247, 0.08); border-radius: 4px; }
  .log-badge { display: inline-block; font-size: 0.68rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; margin-right: 6px; letter-spacing: 0.02em; }
  .log-badge.bot { background: #14532d; color: #86efac; border: 1px solid #166534; }
  .log-badge.admin { background: #581c87; color: #e9d5ff; border: 1px solid #7e22ce; }
  .log-badge.customer { background: #7c2d12; color: #fed7aa; border: 1px solid #9a3412; }
+ .log-badge.incoming-only { background: #1e3a8a; color: #bfdbfe; border: 1px solid #1d4ed8; }
+ .sync-pill { font-size: 0.75rem; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+ .sync-pill.ok { background: #dcfce7; color: #15803d; border-color: #86efac; }
  .var-hint { font-size: 0.8rem; color: #64748b; margin-top: 4px; }
  code { background: #f1f5f9; padding: 2px 5px; border-radius: 4px; }
 </style>
@@ -117,7 +120,6 @@
      </div>
    </div>
 
-   <!-- Ringkasan KPI -->
    <div class="kpi-grid">
      <div class="kpi-box">
        <div class="kpi-label">Chat Masuk (Sesi Nomor)</div>
@@ -142,7 +144,6 @@
    </div>
 
    <div class="report-split">
-     <!-- Kolom Kiri: Pengelompokan Durasi Balas -->
      <div class="sub-panel">
        <h4>
          <span>⏱️ Durasi Balas Chat</span>
@@ -156,7 +157,6 @@
        </div>
      </div>
 
-     <!-- Kolom Kanan: Rincian Chat Baru Masuk per Hari -->
      <div class="sub-panel">
        <h4><span>📅 Chat Masuk per Hari (WITA)</span></h4>
        <div class="table-wrap">
@@ -221,7 +221,8 @@
    <label for="replyInput">Format Pesan Balasan</label>
    <textarea id="replyInput" rows="5" placeholder="Halo Kak *{nama}* 👋..."></textarea>
    <div class="var-hint">Variabel: <code>{nama}</code>, <code>{nomor}</code>, <code>{pesan}</code>. Gunakan <code>*teks*</code> untuk huruf tebal.</div>
-<label id="followupCheckLabel" style="display: flex; align-items: center; gap: 8px; background: #eff6ff; border: 1px solid #bfdbfe; padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-top: 0.75rem;">
+
+   <label id="followupCheckLabel" style="display: flex; align-items: center; gap: 8px; background: #eff6ff; border: 1px solid #bfdbfe; padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-top: 0.75rem;">
      <input type="checkbox" id="expectsFollowupCheck" />
      <span><strong>Tunggu Jawaban Lanjutan (Konteks):</strong> Deteksi jika pesan berikutnya berkaitan dengan balasan ini</span>
    </label>
@@ -238,6 +239,7 @@
        <span>Otomatis alihkan ke Antrean Admin (jeda bot 60 menit) setelah balasan lanjutan terkirim</span>
      </label>
    </div>
+
    <div style="display: flex; gap: 8px; margin-top: 12px;">
      <button id="btnAddRule">+ Simpan Aturan Balasan</button>
      <button id="btnCancelEdit" class="secondary hidden">Batal Edit</button>
@@ -250,9 +252,26 @@
  </div>
 
  <div class="card">
-   <h3 style="margin-top: 0;">Log Aktivitas Auto-Reply (Live)</h3>
+   <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+     <div>
+       <h3 style="margin: 0;">Log Aktivitas Chat & Auto-Reply (Live)</h3>
+       <span id="syncStatusPill" class="sync-pill" style="display: inline-block; margin-top: 4px;">Menyinkronkan chat...</span>
+     </div>
+     <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+       <select id="logFilterSelect" class="compact-select" style="font-size: 0.8rem; padding: 6px 10px;">
+         <option value="all" selected>Semua Chat</option>
+         <option value="bot_reply">Auto-Reply Bot</option>
+         <option value="admin_direct">Admin Langsung</option>
+         <option value="incoming_only">Pesan Masuk / ke Admin</option>
+       </select>
+       <button class="secondary sm" onclick="triggerChatSync(true)">🔄 Sinkronkan</button>
+     </div>
+   </div>
    <div id="logBox" class="log-box">
      <div style="color: #94a3b8;">Memuat riwayat log...</div>
+   </div>
+   <div style="text-align: center; margin-top: 10px;">
+     <button id="btnLoadMoreLogs" class="secondary sm">Muat Lebih Banyak (+50)</button>
    </div>
  </div>
 </div>
@@ -266,6 +285,8 @@
  let currentRules = [];
  let editingRuleId = null;
  let cachedReportMetrics = null;
+ let logDisplayLimit = 80;
+ let syncTimeoutTimer = null;
 
  function escapeHtml(str) {
    return String(str || '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
@@ -321,12 +342,32 @@
    return toWitaDateKey(dt.toISOString());
  }
 
+ // Meminta worker menyinkronkan chat yang belum ada ke wa_logs setiap halaman dibuka
+ async function triggerChatSync(force = false) {
+   const pill = document.getElementById('syncStatusPill');
+   if (pill) {
+     pill.classList.remove('ok');
+     pill.textContent = '🔄 Menyinkronkan chat...';
+   }
+
+   const nowIso = new Date().toISOString();
+   await db
+     .from('wa_bot_config')
+     .update({ sync_requested_at: nowIso })
+     .eq('id', BOT_ID);
+
+   clearTimeout(syncTimeoutTimer);
+   syncTimeoutTimer = setTimeout(() => {
+     if (pill && !pill.classList.contains('ok')) {
+       pill.textContent = 'Data database dimuat (worker standby)';
+     }
+   }, 5000);
+ }
+
  async function loadReports() {
    const periodDays = Number(document.getElementById('reportPeriodSelect').value || 7);
    const startDateKey = getShiftDateKey(periodDays - 1);
    const endDateKey = getShiftDateKey(0);
-
-   // Ambil buffer +2 hari ke belakang untuk mendeteksi kontak baru & pasangan balasan lintas hari
    const fetchFromIso = new Date(Date.now() - (periodDays + 30) * 24 * 60 * 60 * 1000).toISOString();
 
    const { data: logs, error } = await db
@@ -338,7 +379,6 @@
 
    if (error || !logs) return;
 
-   // 1. Catat tanggal pertama kali setiap nomor muncul (untuk mendeteksi kontak baru)
    const firstSeenDateByNumber = new Map();
    for (const row of logs) {
      if (row.log_type === 'admin_direct') continue;
@@ -348,7 +388,6 @@
      }
    }
 
-   // 2. Siapkan struktur tanggal harian untuk periode yang dipilih
    const dailyMap = new Map();
    for (let i = 0; i < periodDays; i++) {
      const k = getShiftDateKey(i);
@@ -361,7 +400,6 @@
      });
    }
 
-   // 3. Hitung statistik harian & pasangan durasi balas
    const pendingAdminWait = new Map();
    const adminDurations = [];
    const botDurations = [];
@@ -371,7 +409,6 @@
      const incomingMs = new Date(row.incoming_at || row.created_at).getTime();
      const eventDateKey = toWitaDateKey(row.incoming_at || row.created_at);
 
-     // Hitung chat masuk harian jika berada di dalam rentang tanggal laporan
      if (row.log_type !== 'admin_direct' && dailyMap.has(eventDateKey)) {
        const dayStat = dailyMap.get(eventDateKey);
        dayStat.totalIncoming += 1;
@@ -385,7 +422,6 @@
        }
      }
 
-     // Hitung durasi balas bot & antrean tunggu admin
      if (row.log_type === 'bot_reply') {
        if (eventDateKey >= startDateKey && eventDateKey <= endDateKey) {
          const botSec = Math.max(1, (createdMs - incomingMs) / 1000);
@@ -397,7 +433,7 @@
            dateKey: toWitaDateKey(row.created_at)
          });
        }
-     } else if (row.log_type === 'customer_admin_msg') {
+     } else if (row.log_type === 'customer_admin_msg' || row.log_type === 'customer_msg') {
        if (!pendingAdminWait.has(row.sender_number)) {
          pendingAdminWait.set(row.sender_number, {
            waitStartMs: createdMs,
@@ -416,7 +452,6 @@
      }
    }
 
-   // Hitung customer pada periode laporan yang hingga kini belum dibalas admin
    let unrepliedAdminCount = 0;
    for (const waitInfo of pendingAdminWait.values()) {
      if (waitInfo.dateKey >= startDateKey && waitInfo.dateKey <= endDateKey) {
@@ -424,7 +459,6 @@
      }
    }
 
-   // Agregasi KPI periode terpilih
    let totalUniqueSessions = 0;
    let totalBrandNewContacts = 0;
    let totalIncomingMsgs = 0;
@@ -454,7 +488,6 @@
    document.getElementById('kpiAvgBotTime').textContent = formatDuration(avgBotSec);
    document.getElementById('kpiBotCountSub').textContent = `${botDurations.length} balasan otomatis`;
 
-   // Render tabel harian
    const tbody = document.getElementById('dailyReportBody');
    tbody.innerHTML = dailyRows.map(d => `
      <tr>
@@ -546,6 +579,14 @@
 
    document.getElementById('toggleActive').checked = data.enabled;
 
+   if (data.last_synced_at) {
+     const pill = document.getElementById('syncStatusPill');
+     if (pill) {
+       pill.classList.add('ok');
+       pill.textContent = `✓ Tersinkronisasi (${formatWitaTime(data.last_synced_at)} WITA)`;
+     }
+   }
+
    if (data.status === 'connected') {
      document.getElementById('qrSection').classList.add('hidden');
      document.getElementById('dashboardSection').classList.remove('hidden');
@@ -579,15 +620,26 @@
  }
 
  async function loadLogs() {
-   const { data } = await db
+   const filterVal = document.getElementById('logFilterSelect').value;
+   let query = db
      .from('wa_logs')
      .select('*')
      .order('created_at', { ascending: false })
-     .limit(40);
+     .limit(logDisplayLimit);
+
+   if (filterVal === 'bot_reply') {
+     query = query.eq('log_type', 'bot_reply');
+   } else if (filterVal === 'admin_direct') {
+     query = query.eq('log_type', 'admin_direct');
+   } else if (filterVal === 'incoming_only') {
+     query = query.in('log_type', ['customer_msg', 'customer_admin_msg']);
+   }
+
+   const { data } = await query;
 
    const box = document.getElementById('logBox');
    if (!data || data.length === 0) {
-     box.innerHTML = '<div style="color: #94a3b8;">Belum ada aktivitas balasan otomatis.</div>';
+     box.innerHTML = '<div style="color: #94a3b8;">Belum ada aktivitas chat pada filter ini.</div>';
      return;
    }
 
@@ -616,6 +668,17 @@
        `;
      }
 
+     if (log.log_type === 'customer_msg' || !log.reply) {
+       return `
+         <div class="log-entry">
+           <div style="color: #93c5fd; font-size: 0.78rem;">
+             [${time}] <span class="log-badge incoming-only">📩 PESAN MASUK</span> Dari: <strong>${escapeHtml(log.sender_name)}</strong> (${escapeHtml(log.sender_number)})
+           </div>
+           <div style="margin: 3px 0; color: #e2e8f0;">"${escapeHtml(log.incoming)}"</div>
+         </div>
+       `;
+     }
+
      return `
        <div class="log-entry">
          <div style="color: #38bdf8; font-size: 0.78rem;">
@@ -627,6 +690,12 @@
      `;
    }).join('');
  }
+
+ document.getElementById('logFilterSelect').addEventListener('change', loadLogs);
+ document.getElementById('btnLoadMoreLogs').addEventListener('click', () => {
+   logDisplayLimit += 50;
+   loadLogs();
+ });
 
  function renderAdminQueue(list) {
    const card = document.getElementById('pausedCard');
@@ -730,112 +799,112 @@
    await db.from('wa_bot_config').update({ enabled: e.target.checked, updated_at: new Date().toISOString() }).eq('id', BOT_ID);
  });
 
-document.getElementById('isDefaultCheck').addEventListener('change', (e) => {
-      document.getElementById('keywordFieldsGrid').classList.toggle('hidden', e.target.checked);
-      document.getElementById('pauseBotLabel').classList.toggle('hidden', e.target.checked);
-      document.getElementById('followupCheckLabel').classList.toggle('hidden', e.target.checked);
-      if (e.target.checked) {
-        document.getElementById('pauseBotCheck').checked = false;
-        document.getElementById('expectsFollowupCheck').checked = false;
-        document.getElementById('followupFieldsBox').classList.add('hidden');
-      }
-    });
+ document.getElementById('isDefaultCheck').addEventListener('change', (e) => {
+   document.getElementById('keywordFieldsGrid').classList.toggle('hidden', e.target.checked);
+   document.getElementById('pauseBotLabel').classList.toggle('hidden', e.target.checked);
+   document.getElementById('followupCheckLabel').classList.toggle('hidden', e.target.checked);
+   if (e.target.checked) {
+     document.getElementById('pauseBotCheck').checked = false;
+     document.getElementById('expectsFollowupCheck').checked = false;
+     document.getElementById('followupFieldsBox').classList.add('hidden');
+   }
+ });
 
-    document.getElementById('expectsFollowupCheck').addEventListener('change', (e) => {
-      document.getElementById('followupFieldsBox').classList.toggle('hidden', !e.target.checked);
-    });
+ document.getElementById('expectsFollowupCheck').addEventListener('change', (e) => {
+   document.getElementById('followupFieldsBox').classList.toggle('hidden', !e.target.checked);
+ });
 
  function cleanCommaList(raw) {
    return (raw || '').split(/[,\n]+/).map(k => k.trim()).filter(Boolean).join(', ');
  }
 
  function resetForm() {
-      editingRuleId = null;
-      document.getElementById('formTitle').textContent = 'Tambah Format Balasan Baru';
-      document.getElementById('isDefaultCheck').checked = false;
-      document.getElementById('pauseBotCheck').checked = false;
-      document.getElementById('expectsFollowupCheck').checked = false;
-      document.getElementById('keywordFieldsGrid').classList.remove('hidden');
-      document.getElementById('pauseBotLabel').classList.remove('hidden');
-      document.getElementById('followupCheckLabel').classList.remove('hidden');
-      document.getElementById('followupFieldsBox').classList.add('hidden');
-      document.getElementById('exactKeywordInput').value = '';
-      document.getElementById('containsKeywordInput').value = '';
-      document.getElementById('replyInput').value = '';
-      document.getElementById('followupKeywordsInput').value = '';
-      document.getElementById('followupReplyInput').value = '';
-      document.getElementById('followupPauseCheck').checked = true;
-      document.getElementById('btnAddRule').textContent = '+ Simpan Aturan Balasan';
-      document.getElementById('btnCancelEdit').classList.add('hidden');
-    }
+   editingRuleId = null;
+   document.getElementById('formTitle').textContent = 'Tambah Format Balasan Baru';
+   document.getElementById('isDefaultCheck').checked = false;
+   document.getElementById('pauseBotCheck').checked = false;
+   document.getElementById('expectsFollowupCheck').checked = false;
+   document.getElementById('keywordFieldsGrid').classList.remove('hidden');
+   document.getElementById('pauseBotLabel').classList.remove('hidden');
+   document.getElementById('followupCheckLabel').classList.remove('hidden');
+   document.getElementById('followupFieldsBox').classList.add('hidden');
+   document.getElementById('exactKeywordInput').value = '';
+   document.getElementById('containsKeywordInput').value = '';
+   document.getElementById('replyInput').value = '';
+   document.getElementById('followupKeywordsInput').value = '';
+   document.getElementById('followupReplyInput').value = '';
+   document.getElementById('followupPauseCheck').checked = true;
+   document.getElementById('btnAddRule').textContent = '+ Simpan Aturan Balasan';
+   document.getElementById('btnCancelEdit').classList.add('hidden');
+ }
 
-    document.getElementById('btnCancelEdit').addEventListener('click', resetForm);
+ document.getElementById('btnCancelEdit').addEventListener('click', resetForm);
 
-    document.getElementById('btnAddRule').addEventListener('click', async () => {
-      const is_default = document.getElementById('isDefaultCheck').checked;
-      const pause_bot = is_default ? false : document.getElementById('pauseBotCheck').checked;
-      const exact_keywords = is_default ? '' : cleanCommaList(document.getElementById('exactKeywordInput').value);
-      const contains_keywords = is_default ? '' : cleanCommaList(document.getElementById('containsKeywordInput').value);
-      const reply = document.getElementById('replyInput').value.trim();
+ document.getElementById('btnAddRule').addEventListener('click', async () => {
+   const is_default = document.getElementById('isDefaultCheck').checked;
+   const pause_bot = is_default ? false : document.getElementById('pauseBotCheck').checked;
+   const exact_keywords = is_default ? '' : cleanCommaList(document.getElementById('exactKeywordInput').value);
+   const contains_keywords = is_default ? '' : cleanCommaList(document.getElementById('containsKeywordInput').value);
+   const reply = document.getElementById('replyInput').value.trim();
 
-      const expects_followup = is_default ? false : document.getElementById('expectsFollowupCheck').checked;
-      const followup_keywords = expects_followup ? cleanCommaList(document.getElementById('followupKeywordsInput').value) : '';
-      const followup_reply = expects_followup ? document.getElementById('followupReplyInput').value.trim() : '';
-      const followup_pause_bot = expects_followup ? document.getElementById('followupPauseCheck').checked : true;
+   const expects_followup = is_default ? false : document.getElementById('expectsFollowupCheck').checked;
+   const followup_keywords = expects_followup ? cleanCommaList(document.getElementById('followupKeywordsInput').value) : '';
+   const followup_reply = expects_followup ? document.getElementById('followupReplyInput').value.trim() : '';
+   const followup_pause_bot = expects_followup ? document.getElementById('followupPauseCheck').checked : true;
 
-      if (!reply) return alert('Format pesan balasan wajib diisi.');
-      if (!is_default && !exact_keywords && !contains_keywords) {
-        return alert('Isi minimal salah satu kolom kata kunci, atau centang Balasan Default.');
-      }
+   if (!reply) return alert('Format pesan balasan wajib diisi.');
+   if (!is_default && !exact_keywords && !contains_keywords) {
+     return alert('Isi minimal salah satu kolom kata kunci, atau centang Balasan Default.');
+   }
 
-      if (is_default) {
-        await db.from('wa_rules').delete().eq('is_default', true).neq('id', editingRuleId || '');
-      }
+   if (is_default) {
+     await db.from('wa_rules').delete().eq('is_default', true).neq('id', editingRuleId || '');
+   }
 
-      await db.from('wa_rules').upsert({
-        id: editingRuleId || 'rule_' + Date.now(),
-        exact_keywords,
-        contains_keywords,
-        is_default,
-        pause_bot,
-        reply,
-        expects_followup,
-        followup_keywords,
-        followup_reply,
-        followup_pause_bot
-      });
+   await db.from('wa_rules').upsert({
+     id: editingRuleId || 'rule_' + Date.now(),
+     exact_keywords,
+     contains_keywords,
+     is_default,
+     pause_bot,
+     reply,
+     expects_followup,
+     followup_keywords,
+     followup_reply,
+     followup_pause_bot
+   });
 
-      resetForm();
-      loadRules();
-    });
+   resetForm();
+   loadRules();
+ });
 
-    function editRule(id) {
-      const r = currentRules.find(item => item.id === id);
-      if (!r) return;
+ function editRule(id) {
+   const r = currentRules.find(item => item.id === id);
+   if (!r) return;
 
-      editingRuleId = id;
-      document.getElementById('formTitle').textContent = 'Edit Aturan Balasan';
-      document.getElementById('isDefaultCheck').checked = r.is_default;
-      document.getElementById('pauseBotCheck').checked = r.pause_bot;
-      document.getElementById('keywordFieldsGrid').classList.toggle('hidden', r.is_default);
-      document.getElementById('pauseBotLabel').classList.toggle('hidden', r.is_default);
-      document.getElementById('followupCheckLabel').classList.toggle('hidden', r.is_default);
+   editingRuleId = id;
+   document.getElementById('formTitle').textContent = 'Edit Aturan Balasan';
+   document.getElementById('isDefaultCheck').checked = r.is_default;
+   document.getElementById('pauseBotCheck').checked = r.pause_bot;
+   document.getElementById('keywordFieldsGrid').classList.toggle('hidden', r.is_default);
+   document.getElementById('pauseBotLabel').classList.toggle('hidden', r.is_default);
+   document.getElementById('followupCheckLabel').classList.toggle('hidden', r.is_default);
 
-      const hasFollowup = !r.is_default && Boolean(r.expects_followup);
-      document.getElementById('expectsFollowupCheck').checked = hasFollowup;
-      document.getElementById('followupFieldsBox').classList.toggle('hidden', !hasFollowup);
-      document.getElementById('followupKeywordsInput').value = r.followup_keywords || '';
-      document.getElementById('followupReplyInput').value = r.followup_reply || '';
-      document.getElementById('followupPauseCheck').checked = r.followup_pause_bot !== false;
+   const hasFollowup = !r.is_default && Boolean(r.expects_followup);
+   document.getElementById('expectsFollowupCheck').checked = hasFollowup;
+   document.getElementById('followupFieldsBox').classList.toggle('hidden', !hasFollowup);
+   document.getElementById('followupKeywordsInput').value = r.followup_keywords || '';
+   document.getElementById('followupReplyInput').value = r.followup_reply || '';
+   document.getElementById('followupPauseCheck').checked = r.followup_pause_bot !== false;
 
-      document.getElementById('exactKeywordInput').value = r.exact_keywords || '';
-      document.getElementById('containsKeywordInput').value = r.contains_keywords || '';
-      document.getElementById('replyInput').value = r.reply;
-      document.getElementById('btnAddRule').textContent = 'Simpan Perubahan';
-      document.getElementById('btnCancelEdit').classList.remove('hidden');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-    
+   document.getElementById('exactKeywordInput').value = r.exact_keywords || '';
+   document.getElementById('containsKeywordInput').value = r.contains_keywords || '';
+   document.getElementById('replyInput').value = r.reply;
+   document.getElementById('btnAddRule').textContent = 'Simpan Perubahan';
+   document.getElementById('btnCancelEdit').classList.remove('hidden');
+   window.scrollTo({ top: 0, behavior: 'smooth' });
+ }
+
  async function deleteRule(id) {
    if (editingRuleId === id) resetForm();
    await db.from('wa_rules').delete().eq('id', id);
@@ -848,18 +917,25 @@ document.getElementById('isDefaultCheck').addEventListener('change', (e) => {
    }
  });
 
- // Inisialisasi awal & berlangganan Supabase Realtime
+ // Inisialisasi awal, sinkronisasi otomatis saat halaman dibuka & Supabase Realtime
  loadBotConfig();
  loadRules();
  loadAdminQueue();
  loadLogs();
  loadReports();
+ triggerChatSync();
 
  db.channel('dashboard-live')
-   .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_bot_config' }, loadBotConfig)
+   .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_bot_config' }, (payload) => {
+     loadBotConfig();
+     if (payload.new?.last_synced_at && payload.new.last_synced_at !== payload.old?.last_synced_at) {
+       loadLogs();
+       loadReports();
+     }
+   })
    .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_rules' }, loadRules)
    .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_admin_queue' }, loadAdminQueue)
-   .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'wa_logs' }, () => {
+   .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_logs' }, () => {
      loadLogs();
      loadReports();
    })
