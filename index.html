@@ -258,6 +258,24 @@
    .wa-back-btn { display: inline-flex; }
    .wa-bubble { max-width: 86%; }
  }
+
+ .wa-chat-panel { position: relative; }
+ .wa-scroll-bottom-btn {
+   position: absolute;
+   right: 16px;
+   bottom: 16px;
+   background: #16a34a;
+   color: #fff;
+   border: none;
+   border-radius: 999px;
+   padding: 7px 14px;
+   font-size: 0.78rem;
+   font-weight: 700;
+   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.22);
+   cursor: pointer;
+   z-index: 10;
+ }
+ .wa-scroll-bottom-btn:hover { background: #15803d; }
 </style>
 </head>
 <body>
@@ -331,6 +349,7 @@
            <div>Pilih salah satu nomor di sebelah kiri untuk melihat riwayat percakapan.</div>
          </div>
        </div>
+       <button type="button" id="waScrollBottomBtn" class="wa-scroll-bottom-btn hidden" onclick="scrollChatToBottom()">⬇️ Pesan baru</button>
      </div>
    </div>
  </div>
@@ -762,14 +781,34 @@
    renderActiveThread(activeThread);
  }
 
+let lastRenderedChatKey = null;
+ let lastRenderedChatHtml = '';
+
+ function scrollChatToBottom() {
+   const msgBox = document.getElementById('waMessagesContainer');
+   const btn = document.getElementById('waScrollBottomBtn');
+   msgBox.scrollTop = msgBox.scrollHeight;
+   if (btn) btn.classList.add('hidden');
+ }
+
+ document.getElementById('waMessagesContainer').addEventListener('scroll', () => {
+   const msgBox = document.getElementById('waMessagesContainer');
+   const btn = document.getElementById('waScrollBottomBtn');
+   const isAtBottom = (msgBox.scrollHeight - msgBox.scrollTop - msgBox.clientHeight) < 60;
+   if (isAtBottom && btn) btn.classList.add('hidden');
+ });
+
  function selectChatThread(numberKey) {
    selectedChatNumber = numberKey;
+   lastRenderedChatKey = null; // Paksa scroll ke bawah saat membuka kontak baru
    document.getElementById('waShell').classList.add('mobile-thread-open');
    renderGroupedWhatsAppView();
  }
 
  function closeMobileChat() {
    selectedChatNumber = null;
+   lastRenderedChatKey = null;
+   lastRenderedChatHtml = '';
    document.getElementById('waShell').classList.remove('mobile-thread-open');
    renderGroupedWhatsAppView();
  }
@@ -777,9 +816,13 @@
  function renderActiveThread(thread) {
    const headerEl = document.getElementById('waChatHeader');
    const msgBox = document.getElementById('waMessagesContainer');
+   const scrollBtn = document.getElementById('waScrollBottomBtn');
 
    if (!thread) {
+     lastRenderedChatKey = null;
+     lastRenderedChatHtml = '';
      headerEl.classList.add('hidden');
+     if (scrollBtn) scrollBtn.classList.add('hidden');
      msgBox.innerHTML = `
        <div class="wa-empty-state">
          <div style="font-size: 2rem; margin-bottom: 8px;">💬</div>
@@ -849,10 +892,31 @@
      }
    }
 
-   msgBox.innerHTML = htmlParts.join('');
-   msgBox.scrollTop = msgBox.scrollHeight;
- }
+   const newHtml = htmlParts.join('');
+   const isThreadChanged = thread.number !== lastRenderedChatKey;
 
+   // Jangan sentuh DOM maupun posisi scroll jika isi chat kontak ini tidak berubah
+   if (!isThreadChanged && newHtml === lastRenderedChatHtml) {
+     return;
+   }
+
+   const wasNearBottom = (msgBox.scrollHeight - msgBox.scrollTop - msgBox.clientHeight) < 80;
+   const prevScrollTop = msgBox.scrollTop;
+
+   msgBox.innerHTML = newHtml;
+   lastRenderedChatKey = thread.number;
+   lastRenderedChatHtml = newHtml;
+
+   if (isThreadChanged || wasNearBottom) {
+     msgBox.scrollTop = msgBox.scrollHeight;
+     if (scrollBtn) scrollBtn.classList.add('hidden');
+   } else {
+     // Pertahankan posisi bacaan di atas dan tampilkan tombol pemberitahuan pesan baru
+     msgBox.scrollTop = prevScrollTop;
+     if (scrollBtn) scrollBtn.classList.remove('hidden');
+   }
+ }
+ 
  document.getElementById('logFilterSelect').addEventListener('change', renderGroupedWhatsAppView);
  document.getElementById('chatSearchInput').addEventListener('input', renderGroupedWhatsAppView);
 
