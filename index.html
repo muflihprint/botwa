@@ -39,6 +39,12 @@
     .log-entry { border-bottom: 1px solid #1e293b; padding: 8px 0; }
     .var-hint { font-size: 0.8rem; color: #64748b; margin-top: 4px; }
     code { background: #f1f5f9; padding: 2px 5px; border-radius: 4px; }
+    .log-entry.admin-direct { border-left: 3px solid #a855f7; padding-left: 10px; background: rgba(168, 85, 247, 0.08); border-radius: 4px; }
+    .log-badge { display: inline-block; font-size: 0.68rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; margin-right: 6px; letter-spacing: 0.02em; }
+    .log-badge.bot { background: #14532d; color: #86efac; border: 1px solid #166534; }
+    .log-badge.admin { background: #581c87; color: #e9d5ff; border: 1px solid #7e22ce; }
+    .log-badge.customer { background: #7c2d12; color: #fed7aa; border: 1px solid #9a3412; }
+  
   </style>
 </head>
 <body>
@@ -183,12 +189,12 @@
       renderAdminQueue(data || []);
     }
 
-    async function loadLogs() {
+async function loadLogs() {
       const { data } = await db
         .from('wa_logs')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(30);
+        .limit(40);
 
       const box = document.getElementById('logBox');
       if (!data || data.length === 0) {
@@ -198,24 +204,41 @@
 
       box.innerHTML = data.map(log => {
         const time = new Date(log.created_at).toLocaleTimeString('id-ID', { timeZone: 'Asia/Makassar' });
+
+        if (log.log_type === 'admin_direct') {
+          return `
+            <div class="log-entry admin-direct">
+              <div style="color: #d8b4fe; font-size: 0.78rem;">
+                [${time}] <span class="log-badge admin">👤 ADMIN LANGSUNG</span> Ke: <strong>${escapeHtml(log.sender_name)}</strong> (${escapeHtml(log.sender_number)})
+              </div>
+              <div style="color: #f3e8ff; white-space: pre-line; margin-top: 4px;">&rarr; Pesan Admin: "${escapeHtml(log.reply || '')}"</div>
+            </div>
+          `;
+        }
+
         if (log.log_type === 'customer_admin_msg') {
           return `
             <div class="log-entry">
-              <div style="color: #fb923c; font-size: 0.78rem;">[${time}] 💬 Pesan untuk Admin dari <strong>${escapeHtml(log.sender_name)}</strong> (${escapeHtml(log.sender_number)})</div>
+              <div style="color: #fb923c; font-size: 0.78rem;">
+                [${time}] <span class="log-badge customer">💬 CHAT KE ADMIN</span> Dari: <strong>${escapeHtml(log.sender_name)}</strong> (${escapeHtml(log.sender_number)})
+              </div>
               <div style="margin: 3px 0; color: #fde68a;">"${escapeHtml(log.incoming)}"</div>
             </div>
           `;
         }
+
         return `
           <div class="log-entry">
-            <div style="color: #38bdf8; font-size: 0.78rem;">[${time}] Dari: <strong>${escapeHtml(log.sender_name)}</strong> (${escapeHtml(log.sender_number)}) ${log.handed_over ? '<span style="color:#fb923c;">[DIALIHKAN KE ADMIN]</span>' : ''}</div>
+            <div style="color: #38bdf8; font-size: 0.78rem;">
+              [${time}] <span class="log-badge bot">🤖 AUTO-REPLY BOT</span> Dari: <strong>${escapeHtml(log.sender_name)}</strong> (${escapeHtml(log.sender_number)}) ${log.handed_over ? '<span style="color:#fb923c;">[DIALIHKAN KE ADMIN]</span>' : ''}
+            </div>
             <div style="margin: 3px 0;">Pesan: "${escapeHtml(log.incoming)}"</div>
             <div style="color: #4ade80; white-space: pre-line;">&rarr; Dibalas otomatis:\n${escapeHtml(log.reply)}</div>
           </div>
         `;
       }).join('');
     }
-
+    
     function renderAdminQueue(list) {
       const card = document.getElementById('pausedCard');
       const container = document.getElementById('pausedList');
