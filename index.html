@@ -221,7 +221,23 @@
    <label for="replyInput">Format Pesan Balasan</label>
    <textarea id="replyInput" rows="5" placeholder="Halo Kak *{nama}* 👋..."></textarea>
    <div class="var-hint">Variabel: <code>{nama}</code>, <code>{nomor}</code>, <code>{pesan}</code>. Gunakan <code>*teks*</code> untuk huruf tebal.</div>
+<label id="followupCheckLabel" style="display: flex; align-items: center; gap: 8px; background: #eff6ff; border: 1px solid #bfdbfe; padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-top: 0.75rem;">
+     <input type="checkbox" id="expectsFollowupCheck" />
+     <span><strong>Tunggu Jawaban Lanjutan (Konteks):</strong> Deteksi jika pesan berikutnya berkaitan dengan balasan ini</span>
+   </label>
 
+   <div id="followupFieldsBox" class="hidden" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; margin-top: 8px;">
+     <label for="followupKeywordsInput" style="margin-top: 0;">Kata Kunci Jawaban Berkaitan (Pisahkan koma)</label>
+     <input type="text" id="followupKeywordsInput" placeholder="Contoh: undangan, stiker, brosur, pcs, lembar" />
+
+     <label for="followupReplyInput">Balasan Lanjutan Jika Berkaitan</label>
+     <textarea id="followupReplyInput" rows="3" placeholder="Terima kasih infonya Kak *{nama}*, detail (*{pesan}*) diteruskan ke Admin..."></textarea>
+
+     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 8px;">
+       <input type="checkbox" id="followupPauseCheck" checked />
+       <span>Otomatis alihkan ke Antrean Admin (jeda bot 60 menit) setelah balasan lanjutan terkirim</span>
+     </label>
+   </div>
    <div style="display: flex; gap: 8px; margin-top: 12px;">
      <button id="btnAddRule">+ Simpan Aturan Balasan</button>
      <button id="btnCancelEdit" class="secondary hidden">Batal Edit</button>
@@ -714,79 +730,112 @@
    await db.from('wa_bot_config').update({ enabled: e.target.checked, updated_at: new Date().toISOString() }).eq('id', BOT_ID);
  });
 
- document.getElementById('isDefaultCheck').addEventListener('change', (e) => {
-   document.getElementById('keywordFieldsGrid').classList.toggle('hidden', e.target.checked);
-   document.getElementById('pauseBotLabel').classList.toggle('hidden', e.target.checked);
-   if (e.target.checked) document.getElementById('pauseBotCheck').checked = false;
- });
+document.getElementById('isDefaultCheck').addEventListener('change', (e) => {
+      document.getElementById('keywordFieldsGrid').classList.toggle('hidden', e.target.checked);
+      document.getElementById('pauseBotLabel').classList.toggle('hidden', e.target.checked);
+      document.getElementById('followupCheckLabel').classList.toggle('hidden', e.target.checked);
+      if (e.target.checked) {
+        document.getElementById('pauseBotCheck').checked = false;
+        document.getElementById('expectsFollowupCheck').checked = false;
+        document.getElementById('followupFieldsBox').classList.add('hidden');
+      }
+    });
+
+    document.getElementById('expectsFollowupCheck').addEventListener('change', (e) => {
+      document.getElementById('followupFieldsBox').classList.toggle('hidden', !e.target.checked);
+    });
 
  function cleanCommaList(raw) {
    return (raw || '').split(/[,\n]+/).map(k => k.trim()).filter(Boolean).join(', ');
  }
 
  function resetForm() {
-   editingRuleId = null;
-   document.getElementById('formTitle').textContent = 'Tambah Format Balasan Baru';
-   document.getElementById('isDefaultCheck').checked = false;
-   document.getElementById('pauseBotCheck').checked = false;
-   document.getElementById('keywordFieldsGrid').classList.remove('hidden');
-   document.getElementById('pauseBotLabel').classList.remove('hidden');
-   document.getElementById('exactKeywordInput').value = '';
-   document.getElementById('containsKeywordInput').value = '';
-   document.getElementById('replyInput').value = '';
-   document.getElementById('btnAddRule').textContent = '+ Simpan Aturan Balasan';
-   document.getElementById('btnCancelEdit').classList.add('hidden');
- }
+      editingRuleId = null;
+      document.getElementById('formTitle').textContent = 'Tambah Format Balasan Baru';
+      document.getElementById('isDefaultCheck').checked = false;
+      document.getElementById('pauseBotCheck').checked = false;
+      document.getElementById('expectsFollowupCheck').checked = false;
+      document.getElementById('keywordFieldsGrid').classList.remove('hidden');
+      document.getElementById('pauseBotLabel').classList.remove('hidden');
+      document.getElementById('followupCheckLabel').classList.remove('hidden');
+      document.getElementById('followupFieldsBox').classList.add('hidden');
+      document.getElementById('exactKeywordInput').value = '';
+      document.getElementById('containsKeywordInput').value = '';
+      document.getElementById('replyInput').value = '';
+      document.getElementById('followupKeywordsInput').value = '';
+      document.getElementById('followupReplyInput').value = '';
+      document.getElementById('followupPauseCheck').checked = true;
+      document.getElementById('btnAddRule').textContent = '+ Simpan Aturan Balasan';
+      document.getElementById('btnCancelEdit').classList.add('hidden');
+    }
 
- document.getElementById('btnCancelEdit').addEventListener('click', resetForm);
+    document.getElementById('btnCancelEdit').addEventListener('click', resetForm);
 
- document.getElementById('btnAddRule').addEventListener('click', async () => {
-   const is_default = document.getElementById('isDefaultCheck').checked;
-   const pause_bot = is_default ? false : document.getElementById('pauseBotCheck').checked;
-   const exact_keywords = is_default ? '' : cleanCommaList(document.getElementById('exactKeywordInput').value);
-   const contains_keywords = is_default ? '' : cleanCommaList(document.getElementById('containsKeywordInput').value);
-   const reply = document.getElementById('replyInput').value.trim();
+    document.getElementById('btnAddRule').addEventListener('click', async () => {
+      const is_default = document.getElementById('isDefaultCheck').checked;
+      const pause_bot = is_default ? false : document.getElementById('pauseBotCheck').checked;
+      const exact_keywords = is_default ? '' : cleanCommaList(document.getElementById('exactKeywordInput').value);
+      const contains_keywords = is_default ? '' : cleanCommaList(document.getElementById('containsKeywordInput').value);
+      const reply = document.getElementById('replyInput').value.trim();
 
-   if (!reply) return alert('Format pesan balasan wajib diisi.');
-   if (!is_default && !exact_keywords && !contains_keywords) {
-     return alert('Isi minimal salah satu kolom kata kunci, atau centang Balasan Default.');
-   }
+      const expects_followup = is_default ? false : document.getElementById('expectsFollowupCheck').checked;
+      const followup_keywords = expects_followup ? cleanCommaList(document.getElementById('followupKeywordsInput').value) : '';
+      const followup_reply = expects_followup ? document.getElementById('followupReplyInput').value.trim() : '';
+      const followup_pause_bot = expects_followup ? document.getElementById('followupPauseCheck').checked : true;
 
-   if (is_default) {
-     await db.from('wa_rules').delete().eq('is_default', true).neq('id', editingRuleId || '');
-   }
+      if (!reply) return alert('Format pesan balasan wajib diisi.');
+      if (!is_default && !exact_keywords && !contains_keywords) {
+        return alert('Isi minimal salah satu kolom kata kunci, atau centang Balasan Default.');
+      }
 
-   await db.from('wa_rules').upsert({
-     id: editingRuleId || 'rule_' + Date.now(),
-     exact_keywords,
-     contains_keywords,
-     is_default,
-     pause_bot,
-     reply
-   });
+      if (is_default) {
+        await db.from('wa_rules').delete().eq('is_default', true).neq('id', editingRuleId || '');
+      }
 
-   resetForm();
-   loadRules();
- });
+      await db.from('wa_rules').upsert({
+        id: editingRuleId || 'rule_' + Date.now(),
+        exact_keywords,
+        contains_keywords,
+        is_default,
+        pause_bot,
+        reply,
+        expects_followup,
+        followup_keywords,
+        followup_reply,
+        followup_pause_bot
+      });
 
- function editRule(id) {
-   const r = currentRules.find(item => item.id === id);
-   if (!r) return;
+      resetForm();
+      loadRules();
+    });
 
-   editingRuleId = id;
-   document.getElementById('formTitle').textContent = 'Edit Aturan Balasan';
-   document.getElementById('isDefaultCheck').checked = r.is_default;
-   document.getElementById('pauseBotCheck').checked = r.pause_bot;
-   document.getElementById('keywordFieldsGrid').classList.toggle('hidden', r.is_default);
-   document.getElementById('pauseBotLabel').classList.toggle('hidden', r.is_default);
-   document.getElementById('exactKeywordInput').value = r.exact_keywords || '';
-   document.getElementById('containsKeywordInput').value = r.contains_keywords || '';
-   document.getElementById('replyInput').value = r.reply;
-   document.getElementById('btnAddRule').textContent = 'Simpan Perubahan';
-   document.getElementById('btnCancelEdit').classList.remove('hidden');
-   window.scrollTo({ top: 0, behavior: 'smooth' });
- }
+    function editRule(id) {
+      const r = currentRules.find(item => item.id === id);
+      if (!r) return;
 
+      editingRuleId = id;
+      document.getElementById('formTitle').textContent = 'Edit Aturan Balasan';
+      document.getElementById('isDefaultCheck').checked = r.is_default;
+      document.getElementById('pauseBotCheck').checked = r.pause_bot;
+      document.getElementById('keywordFieldsGrid').classList.toggle('hidden', r.is_default);
+      document.getElementById('pauseBotLabel').classList.toggle('hidden', r.is_default);
+      document.getElementById('followupCheckLabel').classList.toggle('hidden', r.is_default);
+
+      const hasFollowup = !r.is_default && Boolean(r.expects_followup);
+      document.getElementById('expectsFollowupCheck').checked = hasFollowup;
+      document.getElementById('followupFieldsBox').classList.toggle('hidden', !hasFollowup);
+      document.getElementById('followupKeywordsInput').value = r.followup_keywords || '';
+      document.getElementById('followupReplyInput').value = r.followup_reply || '';
+      document.getElementById('followupPauseCheck').checked = r.followup_pause_bot !== false;
+
+      document.getElementById('exactKeywordInput').value = r.exact_keywords || '';
+      document.getElementById('containsKeywordInput').value = r.contains_keywords || '';
+      document.getElementById('replyInput').value = r.reply;
+      document.getElementById('btnAddRule').textContent = 'Simpan Perubahan';
+      document.getElementById('btnCancelEdit').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    
  async function deleteRule(id) {
    if (editingRuleId === id) resetForm();
    await db.from('wa_rules').delete().eq('id', id);
