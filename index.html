@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WhatsApp Auto-Reply Dashboard — Muflih Print</title>
+<title>WhatsApp Auto-Reply & Broadcast Dashboard — Muflih Print</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
  body { font-family: system-ui, -apple-system, sans-serif; max-width: 920px; margin: 1.5rem auto; padding: 0 1rem; background: #f8fafc; color: #0f172a; }
@@ -12,16 +12,30 @@
  #qrImage { width: 230px; height: 230px; border: 1px solid #cbd5e1; padding: 8px; border-radius: 10px; }
  .header-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 1rem; margin-bottom: 1rem; }
  label { display: block; font-size: 0.85rem; font-weight: 600; margin-top: 0.75rem; color: #334155; }
- input[type="text"], textarea, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; margin-top: 4px; font-family: inherit; font-size: 0.92rem; background: #fff; }
+ input[type="text"], input[type="number"], textarea, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; margin-top: 4px; font-family: inherit; font-size: 0.92rem; background: #fff; }
  select.compact-select { width: auto; margin-top: 0; padding: 7px 12px; font-size: 0.85rem; font-weight: 600; color: #1e293b; }
  .kw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
- @media (max-width: 600px) { .kw-grid { grid-template-columns: 1fr; } }
+ .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+ @media (max-width: 640px) { .kw-grid, .grid-3 { grid-template-columns: 1fr; } }
  button, .btn-link { background: #16a34a; color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
  button:hover, .btn-link:hover { background: #15803d; }
  button.secondary { background: #475569; }
  button.edit { background: #2563eb; }
+ button.warn { background: #d97706; }
  button.danger { background: #dc2626; }
  button.sm, .btn-link.sm { padding: 7px 11px; font-size: 0.8rem; }
+
+ /* Broadcast Panel */
+ .bc-safety-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px; margin-top: 10px; }
+ .bc-preview-box { background: #fefce8; border: 1px dashed #eab308; border-radius: 8px; padding: 10px 12px; margin-top: 8px; font-size: 0.84rem; color: #1e293b; white-space: pre-wrap; }
+ .bc-campaign-item { border: 1px solid #e2e8f0; background: #f8fafc; border-radius: 10px; padding: 12px; margin-top: 10px; }
+ .bc-progress-track { width: 100%; height: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin: 8px 0; }
+ .bc-progress-fill { height: 100%; background: #16a34a; transition: width 0.3s ease; }
+ .bc-status-pill { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; }
+ .bc-status-pill.running { background: #dcfce7; color: #15803d; }
+ .bc-status-pill.paused { background: #fef3c7; color: #b45309; }
+ .bc-status-pill.completed { background: #dbeafe; color: #1d4ed8; }
+ .bc-status-pill.cancelled { background: #fee2e2; color: #b91c1c; }
 
  /* Statistik & Laporan */
  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.25rem; }
@@ -100,10 +114,7 @@
    border: 1px solid #cbd5e1;
    background: #fff;
  }
- .wa-contact-list {
-   flex: 1;
-   overflow-y: auto;
- }
+ .wa-contact-list { flex: 1; overflow-y: auto; }
  .wa-contact-item {
    display: flex;
    align-items: center;
@@ -145,8 +156,8 @@
    flex-shrink: 0;
  }
 
- /* Panel Chat Utama */
  .wa-chat-panel {
+   position: relative;
    display: flex;
    flex-direction: column;
    background-color: #efeae2;
@@ -179,6 +190,21 @@
    flex-direction: column;
    gap: 6px;
  }
+ .wa-scroll-bottom-btn {
+   position: absolute;
+   right: 16px;
+   bottom: 16px;
+   background: #16a34a;
+   color: #fff;
+   border: none;
+   border-radius: 999px;
+   padding: 7px 14px;
+   font-size: 0.78rem;
+   font-weight: 700;
+   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.22);
+   cursor: pointer;
+   z-index: 10;
+ }
  .wa-date-divider {
    align-self: center;
    background: rgba(255, 255, 255, 0.92);
@@ -201,43 +227,14 @@
    word-wrap: break-word;
    white-space: pre-wrap;
  }
- .wa-bubble.in {
-   align-self: flex-start;
-   background: #ffffff;
-   color: #111b21;
-   border-top-left-radius: 2px;
- }
- .wa-bubble.out-bot {
-   align-self: flex-end;
-   background: #d9fdd3;
-   color: #111b21;
-   border-top-right-radius: 2px;
- }
- .wa-bubble.out-admin {
-   align-self: flex-end;
-   background: #e7f8ff;
-   color: #111b21;
-   border-top-right-radius: 2px;
-   border: 1px solid #bae6fd;
- }
- .wa-role-tag {
-   display: block;
-   font-size: 0.68rem;
-   font-weight: 700;
-   margin-bottom: 3px;
- }
+ .wa-bubble.in { align-self: flex-start; background: #ffffff; color: #111b21; border-top-left-radius: 2px; }
+ .wa-bubble.out-bot { align-self: flex-end; background: #d9fdd3; color: #111b21; border-top-right-radius: 2px; }
+ .wa-bubble.out-admin { align-self: flex-end; background: #e7f8ff; color: #111b21; border-top-right-radius: 2px; border: 1px solid #bae6fd; }
+ .wa-role-tag { display: block; font-size: 0.68rem; font-weight: 700; margin-bottom: 3px; }
  .wa-role-tag.bot { color: #15803d; }
  .wa-role-tag.admin { color: #0369a1; }
  .wa-role-tag.handover { color: #c2410c; }
- .wa-bubble-foot {
-   display: flex;
-   justify-content: flex-end;
-   align-items: center;
-   gap: 4px;
-   font-size: 0.67rem;
-   color: #667781;
-   margin-top: 3px;
- }
+ .wa-bubble-foot { display: flex; justify-content: flex-end; align-items: center; gap: 4px; font-size: 0.67rem; color: #667781; margin-top: 3px; }
  .wa-ticks { color: #53bdeb; font-weight: 700; letter-spacing: -2px; }
  .wa-empty-state {
    flex: 1;
@@ -258,24 +255,6 @@
    .wa-back-btn { display: inline-flex; }
    .wa-bubble { max-width: 86%; }
  }
-
- .wa-chat-panel { position: relative; }
- .wa-scroll-bottom-btn {
-   position: absolute;
-   right: 16px;
-   bottom: 16px;
-   background: #16a34a;
-   color: #fff;
-   border: none;
-   border-radius: 999px;
-   padding: 7px 14px;
-   font-size: 0.78rem;
-   font-weight: 700;
-   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.22);
-   cursor: pointer;
-   z-index: 10;
- }
- .wa-scroll-bottom-btn:hover { background: #15803d; }
 </style>
 </head>
 <body>
@@ -288,7 +267,7 @@
  <p id="statusText" style="font-weight: 600; color: #16a34a;">Memeriksa status koneksi di Supabase...</p>
 </div>
 
-<!-- Tahap 2: Dashboard Auto-Reply -->
+<!-- Tahap 2: Dashboard Auto-Reply & Broadcast -->
 <div id="dashboardSection" class="hidden">
 
  <!-- Panel Daftar Nomor Menunggu Balasan Admin -->
@@ -298,6 +277,90 @@
      <small style="color: #64748b;">Klik nomor untuk membuka chat langsung di WhatsApp</small>
    </div>
    <div id="pausedList"></div>
+ </div>
+
+ <!-- Panel Broadcast Pesan Anti-Spam -->
+ <div class="card" style="border-color: #86efac;">
+   <div class="header-bar" style="margin-bottom: 0.75rem;">
+     <div>
+       <h2 style="margin: 0;">📣 Broadcast Pesan (Anti-Spam)</h2>
+       <small style="color: #64748b;">Kirim info promo ke seluruh kontak dengan jeda acak & variasi kalimat otomatis</small>
+     </div>
+     <div style="display: flex; gap: 8px; align-items: center;">
+       <span id="contactCountPill" class="sync-pill ok">0 Kontak</span>
+       <button type="button" class="secondary sm" onclick="triggerChatSync()">🔄 Tarik Kontak</button>
+     </div>
+   </div>
+
+   <div class="kw-grid">
+     <div>
+       <label for="bcTitleInput">Nama / Judul Broadcast</label>
+       <input type="text" id="bcTitleInput" placeholder="Contoh: Promo Cetak Undangan & Stiker" />
+     </div>
+     <div>
+       <label for="bcTargetSelect">Target Penerima</label>
+       <select id="bcTargetSelect">
+         <option value="all_active" selected>Seluruh Kontak Tersimpan</option>
+         <option value="chat_only">Hanya Kontak dari Riwayat Chat</option>
+         <option value="manual_only">Hanya Nomor Tambahan di Bawah</option>
+       </select>
+     </div>
+   </div>
+
+   <label for="bcExtraNumbersInput">Tambah Nomor Ekstra / Manual (Opsional, pisahkan koma atau baris baru)</label>
+   <textarea id="bcExtraNumbersInput" rows="2" placeholder="Contoh: 081234567890, 085299887766"></textarea>
+
+   <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 0.75rem;">
+     <label for="bcMessageInput" style="margin: 0;">Isi Pesan Broadcast (Mendukung Spintax Anti-Spam)</label>
+     <button type="button" class="secondary sm" onclick="insertBroadcastSample()">✨ Sisipkan Contoh Spintax</button>
+   </div>
+   <textarea id="bcMessageInput" rows="4" placeholder="{Halo|Hai|Assalamualaikum} Kak *{nama}* 👋, {salam}! Ada info promo terbaru dari *Muflih Print*..."></textarea>
+   <div class="var-hint">
+     Gunakan variasi acak <code>{kata1|kata2|kata3}</code> agar teks tidak identik pada setiap penerima, serta variabel <code>{nama}</code> & <code>{salam}</code>.
+   </div>
+
+   <div id="bcLivePreviewBox" class="bc-preview-box hidden"></div>
+
+   <!-- Pengaturan Anti-Spam -->
+   <div class="bc-safety-box">
+     <div style="font-weight: 700; font-size: 0.85rem; color: #15803d; margin-bottom: 6px;">🛡️ Pengaturan Perlindungan Anti-Spam</div>
+     <div class="grid-3">
+       <div>
+         <label for="bcMinDelayInput" style="margin-top: 0;">Jeda Minimal (Detik)</label>
+         <input type="number" id="bcMinDelayInput" value="15" min="8" max="300" />
+       </div>
+       <div>
+         <label for="bcMaxDelayInput" style="margin-top: 0;">Jeda Maksimal (Detik)</label>
+         <input type="number" id="bcMaxDelayInput" value="35" min="12" max="600" />
+       </div>
+       <div>
+         <label for="bcBatchSizeInput" style="margin-top: 0;">Istirahat Tiap (Pesan)</label>
+         <input type="number" id="bcBatchSizeInput" value="15" min="5" max="50" />
+       </div>
+     </div>
+     <div class="kw-grid" style="margin-top: 8px;">
+       <div>
+         <label for="bcBatchPauseInput" style="margin-top: 0;">Durasi Istirahat Batch (Menit)</label>
+         <input type="number" id="bcBatchPauseInput" value="3" min="1" max="30" />
+       </div>
+       <div>
+         <label for="bcDailyLimitInput" style="margin-top: 0;">Batas Aman Harian (Pesan/Hari)</label>
+         <input type="number" id="bcDailyLimitInput" value="100" min="10" max="500" />
+       </div>
+     </div>
+     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 10px;">
+       <input type="checkbox" id="bcSafeHoursCheck" checked />
+       <span>Kirim hanya pada jam operasional aman (<strong>08:00 – 21:00 WITA</strong>)</span>
+     </label>
+   </div>
+
+   <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+     <button type="button" id="btnStartBroadcast">🚀 Mulai Kirim Broadcast</button>
+     <button type="button" class="secondary" onclick="previewBroadcastSample()">👁️ Lihat Variasi Pesan</button>
+   </div>
+
+   <!-- Daftar Kampanye & Progres Live -->
+   <div id="bcCampaignList" style="margin-top: 14px;"></div>
  </div>
 
  <!-- Panel Log Chat WhatsApp (Dikelompokkan Per Nomor) -->
@@ -314,12 +377,11 @@
          <option value="admin_direct">Dibalas Admin</option>
          <option value="incoming_only">Dialihkan / Masuk</option>
        </select>
-       <button class="secondary sm" onclick="triggerChatSync(true)">🔄 Sinkronkan</button>
+       <button class="secondary sm" onclick="triggerChatSync()">🔄 Sinkronkan</button>
      </div>
    </div>
 
    <div id="waShell" class="wa-shell">
-     <!-- Sidebar Daftar Nomor -->
      <div class="wa-sidebar">
        <div class="wa-search-bar">
          <input type="text" id="chatSearchInput" placeholder="🔍 Cari nama, nomor, atau isi chat..." />
@@ -329,7 +391,6 @@
        </div>
      </div>
 
-     <!-- Panel Obrolan WhatsApp -->
      <div class="wa-chat-panel">
        <div id="waChatHeader" class="wa-chat-header hidden">
          <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
@@ -514,7 +575,10 @@
  let editingRuleId = null;
  let cachedReportMetrics = null;
  let rawLogsCache = [];
+ let contactsCache = [];
  let selectedChatNumber = null;
+ let lastRenderedChatKey = null;
+ let lastRenderedChatHtml = '';
  let syncTimeoutTimer = null;
 
  function escapeHtml(str) {
@@ -576,6 +640,231 @@
    return toWitaDateKey(dt.toISOString());
  }
 
+ function normalizePhone(raw) {
+   const digits = String(raw || '').replace(/\D/g, '');
+   if (!digits) return null;
+   if (digits.startsWith('0')) return '62' + digits.slice(1);
+   if (digits.startsWith('8')) return '62' + digits;
+   return digits.length >= 9 && digits.length <= 15 ? digits : null;
+ }
+
+ function renderClientSpintax(template, sampleName = 'Andi') {
+   let out = String(template || '').replace(/\{([^{}|]+\|[^{}]+)\}/g, (_, choicesStr) => {
+     const opts = choicesStr.split('|').map(s => s.trim()).filter(Boolean);
+     return opts.length ? opts[Math.floor(Math.random() * opts.length)] : '';
+   });
+   return out
+     .replace(/\{nama\}/gi, sampleName)
+     .replace(/\{nomor\}/gi, '6281234567890')
+     .replace(/\{salam\}/gi, 'Selamat siang');
+ }
+
+ // --- Fitur Broadcast Anti-Spam ---
+ async function loadContacts() {
+   const { data } = await db
+     .from('wa_contacts')
+     .select('*')
+     .order('updated_at', { ascending: false })
+     .limit(3000);
+
+   contactsCache = data || [];
+   const pill = document.getElementById('contactCountPill');
+   if (pill) {
+     pill.textContent = `${contactsCache.length} Kontak`;
+   }
+ }
+
+ function insertBroadcastSample() {
+   document.getElementById('bcMessageInput').value =
+     '{Halo|Hai|Assalamualaikum} Kak *{nama}* 👋, {salam}!\n\n' +
+     '{Kabar gembira|Info spesial} dari *Muflih Print Makassar* — sekarang pemesanan cetak undangan, stiker, & dokumen PDF bisa dilakukan lebih praktis secara online (COD) di:\n' +
+     '👉 https://muflihprint.vercel.app\n\n' +
+     '{Silakan balas pesan ini jika ingin tanya-tanya dulu ya, Kak!|Langsung hubungi kami kapan saja jika butuh bantuan cetak ya, Kak!} 😊';
+   previewBroadcastSample();
+ }
+
+ function previewBroadcastSample() {
+   const tpl = document.getElementById('bcMessageInput').value.trim();
+   const box = document.getElementById('bcLivePreviewBox');
+   if (!tpl) {
+     box.classList.add('hidden');
+     return;
+   }
+   const v1 = renderClientSpintax(tpl, 'Budi');
+   const v2 = renderClientSpintax(tpl, 'Siti');
+   box.innerHTML =
+     `<strong>Contoh Variasi 1 (Penerima A):</strong>\n${escapeHtml(v1)}\n\n` +
+     `<strong>Contoh Variasi 2 (Penerima B):</strong>\n${escapeHtml(v2)}`;
+   box.classList.remove('hidden');
+ }
+
+ document.getElementById('bcMessageInput').addEventListener('input', previewBroadcastSample);
+
+ document.getElementById('btnStartBroadcast').addEventListener('click', async () => {
+   const title = document.getElementById('bcTitleInput').value.trim() || 'Broadcast Promo';
+   const targetMode = document.getElementById('bcTargetSelect').value;
+   const message_template = document.getElementById('bcMessageInput').value.trim();
+   const extraRaw = document.getElementById('bcExtraNumbersInput').value;
+
+   if (!message_template) return alert('Isi pesan broadcast terlebih dahulu.');
+
+   const min_delay_sec = Math.max(8, Number(document.getElementById('bcMinDelayInput').value || 15));
+   const max_delay_sec = Math.max(min_delay_sec + 2, Number(document.getElementById('bcMaxDelayInput').value || 35));
+   const batch_size = Math.max(5, Number(document.getElementById('bcBatchSizeInput').value || 15));
+   const batch_pause_min = Math.max(1, Number(document.getElementById('bcBatchPauseInput').value || 3));
+   const daily_limit = Math.max(10, Number(document.getElementById('bcDailyLimitInput').value || 100));
+   const safe_hours_only = document.getElementById('bcSafeHoursCheck').checked;
+
+   // Kumpulkan daftar penerima unik
+   const recipientMap = new Map();
+
+   if (targetMode === 'all_active' || targetMode === 'chat_only') {
+     for (const c of contactsCache) {
+       if (targetMode === 'chat_only' && c.source !== 'chat_history') continue;
+       const p = normalizePhone(c.phone);
+       if (p) recipientMap.set(p, { phone: p, name: c.name || '' });
+     }
+   }
+
+   // Tambahkan nomor manual/ekstra jika diisi
+   const extraList = extraRaw.split(/[\s,;\n]+/).map(normalizePhone).filter(Boolean);
+   for (const p of extraList) {
+     if (!recipientMap.has(p)) {
+       const existing = contactsCache.find(c => c.phone === p);
+       recipientMap.set(p, { phone: p, name: existing?.name || '' });
+     }
+   }
+
+   const recipients = Array.from(recipientMap.values());
+   if (recipients.length === 0) {
+     return alert('Tidak ada nomor kontak yang ditemukan. Klik "Tarik Kontak" atau masukkan nomor manual.');
+   }
+
+   if (!confirm(`Kirim broadcast "${title}" ke ${recipients.length} nomor dengan jeda acak ${min_delay_sec}–${max_delay_sec} detik?`)) {
+     return;
+   }
+
+   const broadcastId = 'bc_' + Date.now();
+
+   const { error: bcErr } = await db.from('wa_broadcasts').insert({
+     id: broadcastId,
+     title,
+     message_template,
+     status: 'running',
+     total_recipients: recipients.length,
+     sent_count: 0,
+     failed_count: 0,
+     min_delay_sec,
+     max_delay_sec,
+     batch_size,
+     batch_pause_min,
+     daily_limit,
+     safe_hours_only,
+     current_note: 'Mempersiapkan antrean pengiriman...'
+   });
+
+   if (bcErr) return alert('Gagal membuat broadcast: ' + bcErr.message);
+
+   const rowsToInsert = recipients.map(r => ({
+     broadcast_id: broadcastId,
+     phone: r.phone,
+     name: r.name,
+     status: 'pending'
+   }));
+
+   for (let i = 0; i < rowsToInsert.length; i += 200) {
+     await db.from('wa_broadcast_recipients').insert(rowsToInsert.slice(i, i + 200));
+   }
+
+   document.getElementById('bcTitleInput').value = '';
+   document.getElementById('bcExtraNumbersInput').value = '';
+   loadBroadcasts();
+ });
+
+ async function loadBroadcasts() {
+   const { data } = await db
+     .from('wa_broadcasts')
+     .select('*')
+     .order('created_at', { ascending: false })
+     .limit(6);
+
+   const container = document.getElementById('bcCampaignList');
+   if (!data || data.length === 0) {
+     container.innerHTML = '';
+     return;
+   }
+
+   container.innerHTML = data.map(bc => {
+     const done = (bc.sent_count || 0) + (bc.failed_count || 0);
+     const pct = bc.total_recipients > 0 ? Math.min(100, Math.round((done / bc.total_recipients) * 100)) : 0;
+
+     let actionButtons = '';
+     if (bc.status === 'running') {
+       actionButtons = `
+         <button type="button" class="warn sm" onclick="updateBroadcastStatus('${bc.id}', 'paused')">⏸️ Jeda</button>
+         <button type="button" class="danger sm" onclick="updateBroadcastStatus('${bc.id}', 'cancelled')">⏹️ Batalkan</button>
+       `;
+     } else if (bc.status === 'paused') {
+       actionButtons = `
+         <button type="button" class="sm" onclick="updateBroadcastStatus('${bc.id}', 'running')">▶️ Lanjutkan</button>
+         <button type="button" class="danger sm" onclick="updateBroadcastStatus('${bc.id}', 'cancelled')">⏹️ Batalkan</button>
+       `;
+     }
+
+     return `
+       <div class="bc-campaign-item">
+         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+           <div>
+             <strong>${escapeHtml(bc.title)}</strong>
+             <span class="bc-status-pill ${bc.status}" style="margin-left: 6px;">${escapeHtml(bc.status)}</span>
+           </div>
+           <div style="display: flex; gap: 6px;">${actionButtons}</div>
+         </div>
+         <div class="bc-progress-track">
+           <div class="bc-progress-fill" style="width: ${pct}%;"></div>
+         </div>
+         <div style="display: flex; justify-content: space-between; font-size: 0.78rem; color: #475569; flex-wrap: wrap; gap: 6px;">
+           <span>Terkirim: <strong>${bc.sent_count}</strong> / ${bc.total_recipients} (${pct}%)${bc.failed_count > 0 ? ` • Dilewati/Gagal: ${bc.failed_count}` : ''}</span>
+           <span>${escapeHtml(bc.current_note || '')}</span>
+         </div>
+       </div>
+     `;
+   }).join('');
+ }
+
+ async function updateBroadcastStatus(id, newStatus) {
+   await db
+     .from('wa_broadcasts')
+     .update({
+       status: newStatus,
+       current_note: newStatus === 'paused' ? 'Dijeda oleh Admin' : (newStatus === 'cancelled' ? 'Dibatalkan oleh Admin' : 'Melanjutkan pengiriman...'),
+       updated_at: new Date().toISOString()
+     })
+     .eq('id', id);
+   loadBroadcasts();
+ }
+
+ // --- Sinkronisasi & Chat View ---
+ async function triggerChatSync() {
+   const pill = document.getElementById('syncStatusPill');
+   if (pill) {
+     pill.classList.remove('ok');
+     pill.textContent = '🔄 Menyinkronkan chat & kontak...';
+   }
+
+   await db
+     .from('wa_bot_config')
+     .update({ sync_requested_at: new Date().toISOString() })
+     .eq('id', BOT_ID);
+
+   clearTimeout(syncTimeoutTimer);
+   syncTimeoutTimer = setTimeout(() => {
+     if (pill && !pill.classList.contains('ok')) {
+       pill.textContent = 'Data database dimuat (worker standby)';
+     }
+   }, 5000);
+ }
+
  function getAvatarStyle(seedStr) {
    const palette = ['#059669', '#0284c7', '#7c3aed', '#db2777', '#d97706', '#2563eb', '#0d9488', '#4f46e5'];
    let hash = 0;
@@ -593,28 +882,6 @@
    return digits.length >= 8 ? `https://wa.me/${digits}` : null;
  }
 
- // Meminta worker menyinkronkan chat yang belum ada ke wa_logs setiap halaman dibuka
- async function triggerChatSync() {
-   const pill = document.getElementById('syncStatusPill');
-   if (pill) {
-     pill.classList.remove('ok');
-     pill.textContent = '🔄 Menyinkronkan chat...';
-   }
-
-   await db
-     .from('wa_bot_config')
-     .update({ sync_requested_at: new Date().toISOString() })
-     .eq('id', BOT_ID);
-
-   clearTimeout(syncTimeoutTimer);
-   syncTimeoutTimer = setTimeout(() => {
-     if (pill && !pill.classList.contains('ok')) {
-       pill.textContent = 'Data database dimuat (worker standby)';
-     }
-   }, 5000);
- }
-
- // Memuat log dan mengelompokkan percakapan berdasarkan masing-masing nomor
  async function loadLogs() {
    const { data } = await db
      .from('wa_logs')
@@ -647,7 +914,6 @@
      }
 
      const thread = map.get(numKey);
-     // Perbarui nama tampilan jika ditemukan nama kontak yang bukan sekadar nomor
      if (log.sender_name && log.sender_name !== numKey && !log.sender_name.startsWith('+')) {
        thread.name = log.sender_name;
      }
@@ -657,19 +923,13 @@
 
      if (log.log_type === 'admin_direct') {
        const text = log.reply || '';
-       thread.bubbles.push({
-         direction: 'out',
-         role: 'admin',
-         text,
-         timestampMs: createdMs
-       });
+       thread.bubbles.push({ direction: 'out', role: 'admin', text, timestampMs: createdMs });
        thread.hasAdminDirect = true;
        if (createdMs >= thread.lastTimestampMs) {
          thread.lastTimestampMs = createdMs;
          thread.lastPreview = `👤 Admin: ${text}`;
        }
      } else if (log.log_type === 'bot_reply' && log.reply) {
-       // 1. Gelembung pesan masuk customer
        thread.bubbles.push({
          direction: 'in',
          role: 'customer',
@@ -677,13 +937,7 @@
          timestampMs: incomingMs,
          handedOver: Boolean(log.handed_over)
        });
-       // 2. Gelembung balasan otomatis bot
-       thread.bubbles.push({
-         direction: 'out',
-         role: 'bot',
-         text: log.reply,
-         timestampMs: createdMs
-       });
+       thread.bubbles.push({ direction: 'out', role: 'bot', text: log.reply, timestampMs: createdMs });
        thread.hasBotReply = true;
        if (log.handed_over) thread.hasHandover = true;
        if (createdMs >= thread.lastTimestampMs) {
@@ -712,16 +966,10 @@
      return t;
    });
 
-   // Filter kategori
-   if (filterVal === 'bot_reply') {
-     threads = threads.filter(t => t.hasBotReply);
-   } else if (filterVal === 'admin_direct') {
-     threads = threads.filter(t => t.hasAdminDirect);
-   } else if (filterVal === 'incoming_only') {
-     threads = threads.filter(t => t.hasHandover || (!t.hasBotReply && !t.hasAdminDirect));
-   }
+   if (filterVal === 'bot_reply') threads = threads.filter(t => t.hasBotReply);
+   else if (filterVal === 'admin_direct') threads = threads.filter(t => t.hasAdminDirect);
+   else if (filterVal === 'incoming_only') threads = threads.filter(t => t.hasHandover || (!t.hasBotReply && !t.hasAdminDirect));
 
-   // Filter pencarian teks
    if (keyword) {
      threads = threads.filter(t =>
        t.name.toLowerCase().includes(keyword) ||
@@ -730,7 +978,6 @@
      );
    }
 
-   // Urutkan kontak berdasarkan aktivitas terbaru di atas
    threads.sort((a, b) => b.lastTimestampMs - a.lastTimestampMs);
    return threads;
  }
@@ -745,7 +992,6 @@
      return;
    }
 
-   // Pada layar desktop, otomatis buka chat paling atas jika belum ada yang dipilih
    if (!selectedChatNumber && window.innerWidth > 680) {
      selectedChatNumber = threads[0].number;
    }
@@ -781,9 +1027,6 @@
    renderActiveThread(activeThread);
  }
 
-let lastRenderedChatKey = null;
- let lastRenderedChatHtml = '';
-
  function scrollChatToBottom() {
    const msgBox = document.getElementById('waMessagesContainer');
    const btn = document.getElementById('waScrollBottomBtn');
@@ -800,7 +1043,7 @@ let lastRenderedChatKey = null;
 
  function selectChatThread(numberKey) {
    selectedChatNumber = numberKey;
-   lastRenderedChatKey = null; // Paksa scroll ke bawah saat membuka kontak baru
+   lastRenderedChatKey = null;
    document.getElementById('waShell').classList.add('mobile-thread-open');
    renderGroupedWhatsAppView();
  }
@@ -895,7 +1138,6 @@ let lastRenderedChatKey = null;
    const newHtml = htmlParts.join('');
    const isThreadChanged = thread.number !== lastRenderedChatKey;
 
-   // Jangan sentuh DOM maupun posisi scroll jika isi chat kontak ini tidak berubah
    if (!isThreadChanged && newHtml === lastRenderedChatHtml) {
      return;
    }
@@ -911,15 +1153,15 @@ let lastRenderedChatKey = null;
      msgBox.scrollTop = msgBox.scrollHeight;
      if (scrollBtn) scrollBtn.classList.add('hidden');
    } else {
-     // Pertahankan posisi bacaan di atas dan tampilkan tombol pemberitahuan pesan baru
      msgBox.scrollTop = prevScrollTop;
      if (scrollBtn) scrollBtn.classList.remove('hidden');
    }
  }
- 
+
  document.getElementById('logFilterSelect').addEventListener('change', renderGroupedWhatsAppView);
  document.getElementById('chatSearchInput').addEventListener('input', renderGroupedWhatsAppView);
 
+ // --- Laporan Harian & Durasi ---
  async function loadReports() {
    const periodDays = Number(document.getElementById('reportPeriodSelect').value || 7);
    const startDateKey = getShiftDateKey(periodDays - 1);
@@ -1395,10 +1637,12 @@ let lastRenderedChatKey = null;
    }
  });
 
- // Inisialisasi awal, sinkronisasi otomatis saat halaman dibuka & Supabase Realtime
+ // Inisialisasi awal & Supabase Realtime
  loadBotConfig();
  loadRules();
  loadAdminQueue();
+ loadContacts();
+ loadBroadcasts();
  loadLogs();
  loadReports();
  triggerChatSync();
@@ -1407,13 +1651,16 @@ let lastRenderedChatKey = null;
    .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_bot_config' }, (payload) => {
      loadBotConfig();
      if (payload.new?.last_synced_at && payload.new.last_synced_at !== payload.old?.last_synced_at) {
+       loadContacts();
        loadLogs();
        loadReports();
      }
    })
    .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_rules' }, loadRules)
    .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_admin_queue' }, loadAdminQueue)
-   .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_logs' }, () => {
+   .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_contacts' }, loadContacts)
+   .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_broadcasts' }, loadBroadcasts)
+   .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'wa_logs' }, () => {
      loadLogs();
      loadReports();
    })
