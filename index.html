@@ -528,9 +528,7 @@
        <button type="button" class="secondary" onclick="previewBroadcastSample()">👁️ Lihat Variasi Pesan</button>
      </div>
 
-     <!-- Daftar Kampanye & Progres Live -->
-     <div id="bcCampaignList" style="margin-top: 14px;"></div>
-
+    
      <!-- Daftar Kampanye & Progres Live -->
      <div id="bcCampaignList" style="margin-top: 14px;"></div>
 
@@ -1071,7 +1069,7 @@
    document.getElementById('bcHistoryPanel').classList.add('hidden');
  }
 
- async function fetchBroadcastHistoryRows(broadcastId) {
+async function fetchBroadcastHistoryRows(broadcastId) {
    let allRows = [];
    let from = 0;
    const pageSize = 1000;
@@ -1081,15 +1079,27 @@
        .from('wa_broadcast_recipients')
        .select('id, phone, name, status, rendered_message, error_msg, sent_at')
        .eq('broadcast_id', broadcastId)
-       .order('sent_at', { ascending: false, nullsFirst: false })
-       .order('id', { ascending: true })
+       .order('id', { ascending: false })
        .range(from, from + pageSize - 1);
 
-     if (error || !data || data.length === 0) break;
+     if (error) {
+       document.getElementById('bcHistorySubtitle').textContent = 'Error memuat data: ' + error.message;
+       document.getElementById('bcHistoryTableBody').innerHTML =
+         `<tr><td colspan="4" style="color:#dc2626;">Gagal memuat riwayat: ${escapeHtml(error.message)}</td></tr>`;
+       return;
+     }
+
+     if (!data || data.length === 0) break;
      allRows = allRows.concat(data);
      if (data.length < pageSize) break;
      from += pageSize;
    }
+
+   allRows.sort((a, b) => {
+     const ta = a.sent_at ? new Date(a.sent_at).getTime() : 0;
+     const tb = b.sent_at ? new Date(b.sent_at).getTime() : 0;
+     return tb - ta;
+   });
 
    bcHistoryRowsCache = allRows;
    const sentTotal = allRows.filter(r => r.status === 'sent').length;
@@ -1101,7 +1111,7 @@
 
    renderBroadcastHistoryTable();
  }
-
+ 
  function renderBroadcastHistoryTable() {
    const statusFilter = document.getElementById('bcHistoryStatusFilter').value;
    const q = (document.getElementById('bcHistorySearchInput').value || '').trim().toLowerCase();
@@ -1159,7 +1169,7 @@
      `;
    }).join('');
  }
- 
+
  async function updateBroadcastStatus(id, newStatus) {
    await db
      .from('wa_broadcasts')
