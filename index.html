@@ -678,18 +678,12 @@
        <label class="day-chip"><input type="checkbox" value="6" onchange="updateOffHoursLiveBadge()" /> Sabtu</label>
      </div>
 
-     <label for="offHoursModeSelect">Mode Balasan Saat di Luar Jam Kerja</label>
-     <select id="offHoursModeSelect">
-       <option value="append" selected>Tetap balas seperti jam buka + tambahkan info jam tutup di bawahnya (Direkomendasikan)</option>
-       <option value="replace">Gantikan balasan biasa dengan pesan khusus di luar jam kerja saja</option>
-     </select>
-
      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 0.75rem;">
-       <label for="offHoursReplyInput" style="margin: 0;">Format Pesan Balasan Luar Jam Kerja</label>
+       <label for="offHoursReplyInput" style="margin: 0;">Keterangan Tambahan Saat Jam Tutup (Otomatis Disisipkan di Bawah Balasan)</label>
        <button type="button" class="secondary sm" onclick="insertOffHoursSample()">✨ Contoh Template Muflih Print</button>
      </div>
-     <textarea id="offHoursReplyInput" rows="4" placeholder="{salam} Kak *{nama}* 🙏, saat ini *Muflih Print* sedang tutup (di luar jam operasional)..."></textarea>
-     <div class="var-hint">Variabel: <code>{salam}</code>, <code>{nama}</code>, <code>{nomor}</code>, <code>{pesan}</code>.</div>
+     <textarea id="offHoursReplyInput" rows="4" placeholder="🌙 *Info Jam Tutup:*&#10;Saat ini *Muflih Print* sedang tutup (di luar jam operasional)..."></textarea>
+     <div class="var-hint">Balasan auto-reply tetap berjalan normal seperti jam buka, lalu teks di atas disisipkan otomatis di bagian bawah saat di luar jam operasional. Variabel: <code>{salam}</code>, <code>{nama}</code>, <code>{nomor}</code>, <code>{pesan}</code>.</div>
 
      <label style="display: flex; align-items: center; gap: 8px; background: #fff7ed; border: 1px solid #fed7aa; padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-top: 0.75rem;">
        <input type="checkbox" id="offHoursPauseCheck" />
@@ -1902,7 +1896,6 @@ let activeHistoryBroadcastId = null;
    document.getElementById('offHoursStartInput').value = data.off_hours_start || '18:00';
    document.getElementById('offHoursEndInput').value = data.off_hours_end || '08:00';
    document.getElementById('offHoursCooldownInput').value = data.off_hours_cooldown_min ?? 60;
-   document.getElementById('offHoursModeSelect').value = data.off_hours_mode || 'append';
    document.getElementById('offHoursReplyInput').value = data.off_hours_reply || '';
    document.getElementById('offHoursPauseCheck').checked = Boolean(data.off_hours_pause_bot);
 
@@ -1984,7 +1977,7 @@ let activeHistoryBroadcastId = null;
    const off_hours_start = document.getElementById('offHoursStartInput').value || '18:00';
    const off_hours_end = document.getElementById('offHoursEndInput').value || '08:00';
    const off_hours_cooldown_min = Math.max(0, Number(document.getElementById('offHoursCooldownInput').value ?? 60));
-   const off_hours_mode = document.getElementById('offHoursModeSelect').value;
+   const off_hours_mode = 'append';
    let off_hours_reply = document.getElementById('offHoursReplyInput').value.trim();
    const off_hours_pause_bot = document.getElementById('offHoursPauseCheck').checked;
    const off_hours_days = Array.from(document.querySelectorAll('#offHoursDaysGroup input:checked'))
