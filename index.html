@@ -6,7 +6,7 @@
 <title>WhatsApp Auto-Reply & Broadcast Dashboard — Muflih Print</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
- body { font-family: system-ui, -apple-system, sans-serif; max-width: 920px; margin: 1.5rem auto; padding: 0 1rem; background: #f8fafc; color: #0f172a; }
+ body { font-family: system-ui, -apple-system, sans-serif; max-width: 920px; margin: 1.25rem auto; padding: 0 1rem; background: #f8fafc; color: #0f172a; }
  .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
  .hidden { display: none !important; }
  #qrImage { width: 230px; height: 230px; border: 1px solid #cbd5e1; padding: 8px; border-radius: 10px; }
@@ -20,10 +20,78 @@
  button, .btn-link { background: #16a34a; color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
  button:hover, .btn-link:hover { background: #15803d; }
  button.secondary { background: #475569; }
+ button.secondary:hover { background: #334155; }
  button.edit { background: #2563eb; }
+ button.edit:hover { background: #1d4ed8; }
  button.warn { background: #d97706; }
+ button.warn:hover { background: #b45309; }
  button.danger { background: #dc2626; }
+ button.danger:hover { background: #b91c1c; }
  button.sm, .btn-link.sm { padding: 7px 11px; font-size: 0.8rem; }
+
+ /* Top Bar & Navigasi 4 Tab */
+ .top-app-bar {
+   background: #fff;
+   border: 1px solid #e2e8f0;
+   border-radius: 12px;
+   padding: 0.9rem 1.15rem;
+   margin-bottom: 0.85rem;
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   flex-wrap: wrap;
+   gap: 10px;
+   box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+ }
+ .tab-nav {
+   display: grid;
+   grid-template-columns: repeat(4, 1fr);
+   gap: 8px;
+   background: #e2e8f0;
+   padding: 6px;
+   border-radius: 12px;
+   margin-bottom: 1.25rem;
+ }
+ .tab-btn {
+   background: transparent;
+   color: #475569;
+   border: none;
+   padding: 10px 10px;
+   border-radius: 8px;
+   font-size: 0.88rem;
+   font-weight: 700;
+   cursor: pointer;
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   gap: 6px;
+   transition: all 0.15s ease;
+ }
+ .tab-btn:hover {
+   background: rgba(255, 255, 255, 0.55);
+   color: #0f172a;
+ }
+ .tab-btn.active {
+   background: #ffffff;
+   color: #15803d;
+   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+ }
+ .tab-badge {
+   background: #dc2626;
+   color: #fff;
+   font-size: 0.7rem;
+   font-weight: 800;
+   padding: 1px 6px;
+   border-radius: 999px;
+   line-height: 1.3;
+ }
+ .tab-badge.green {
+   background: #16a34a;
+ }
+ @media (max-width: 620px) {
+   .tab-nav { grid-template-columns: repeat(2, 1fr); }
+   .tab-btn { font-size: 0.84rem; padding: 9px 8px; }
+ }
 
  /* Broadcast Panel */
  .bc-safety-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px; margin-top: 10px; }
@@ -267,309 +335,354 @@
  <p id="statusText" style="font-weight: 600; color: #16a34a;">Memeriksa status koneksi di Supabase...</p>
 </div>
 
-<!-- Tahap 2: Dashboard Auto-Reply & Broadcast -->
+<!-- Tahap 2: Dashboard 4 Tab -->
 <div id="dashboardSection" class="hidden">
 
- <!-- Panel Daftar Nomor Menunggu Balasan Admin -->
- <div id="pausedCard" class="card hidden" style="border-color: #fb923c;">
-   <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
-     <h3 style="margin: 0; color: #c2410c;">📥 Antrean Chat Admin <span id="waitingCountBadge" class="badge-wait" style="margin-left: 6px;">0 Menunggu</span></h3>
-     <small style="color: #64748b;">Klik nomor untuk membuka chat langsung di WhatsApp</small>
+ <!-- Bilah Header Global -->
+ <div class="top-app-bar">
+   <div>
+     <div style="font-weight: 800; font-size: 1.05rem; color: #0f172a;">WhatsApp Bot & Broadcast — Muflih Print</div>
+     <div style="font-size: 0.78rem; color: #16a34a; font-weight: 600;">● Terhubung ke Worker & Supabase</div>
    </div>
-   <div id="pausedList"></div>
- </div>
-
- <!-- Panel Broadcast Pesan Anti-Spam -->
- <div class="card" style="border-color: #86efac;">
-   <div class="header-bar" style="margin-bottom: 0.75rem;">
-     <div>
-       <h2 style="margin: 0;">📣 Broadcast Pesan (Anti-Spam)</h2>
-       <small style="color: #64748b;">Kirim info promo ke seluruh kontak dengan jeda acak & variasi kalimat otomatis</small>
-     </div>
-     <div style="display: flex; gap: 8px; align-items: center;">
-       <span id="contactCountPill" class="sync-pill ok">0 Kontak</span>
-       <button type="button" class="secondary sm" onclick="triggerChatSync()">🔄 Tarik Kontak</button>
-     </div>
-   </div>
-
-   <div class="kw-grid">
-     <div>
-       <label for="bcTitleInput">Nama / Judul Broadcast</label>
-       <input type="text" id="bcTitleInput" placeholder="Contoh: Promo Cetak Undangan & Stiker" />
-     </div>
-     <div>
-       <label for="bcTargetSelect">Target Penerima</label>
-      <select id="bcTargetSelect">
-         <option value="all_active" selected>Seluruh Kontak Tersimpan</option>
-         <option value="never_broadcasted">Kontak yang Belum Pernah Dikirimi Broadcast</option>
-         <option value="chat_only">Hanya Kontak dari Riwayat Chat</option>
-         <option value="manual_only">Hanya Nomor Tambahan di Bawah</option>
-       </select>
-     </div>
-   </div>
-
-   <label for="bcExtraNumbersInput">Tambah Nomor Ekstra / Manual (Opsional, pisahkan koma atau baris baru)</label>
-   <textarea id="bcExtraNumbersInput" rows="2" placeholder="Contoh: 081234567890, 085299887766"></textarea>
-
-   <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 0.75rem;">
-     <label for="bcMessageInput" style="margin: 0;">Isi Pesan Broadcast (Mendukung Spintax Anti-Spam)</label>
-     <button type="button" class="secondary sm" onclick="insertBroadcastSample()">✨ Sisipkan Contoh Spintax</button>
-   </div>
-   <textarea id="bcMessageInput" rows="4" placeholder="{Halo|Hai|Assalamualaikum} Kak *{nama}* 👋, {salam}! Ada info promo terbaru dari *Muflih Print*..."></textarea>
-   <div class="var-hint">
-     Gunakan variasi acak <code>{kata1|kata2|kata3}</code> agar teks tidak identik pada setiap penerima, serta variabel <code>{nama}</code> & <code>{salam}</code>.
-   </div>
-
-   <div id="bcLivePreviewBox" class="bc-preview-box hidden"></div>
-
-   <!-- Pengaturan Anti-Spam -->
-   <div class="bc-safety-box">
-     <div style="font-weight: 700; font-size: 0.85rem; color: #15803d; margin-bottom: 6px;">🛡️ Pengaturan Perlindungan Anti-Spam</div>
-     <div class="grid-3">
-       <div>
-         <label for="bcMinDelayInput" style="margin-top: 0;">Jeda Minimal (Detik)</label>
-         <input type="number" id="bcMinDelayInput" value="15" min="8" max="300" />
-       </div>
-       <div>
-         <label for="bcMaxDelayInput" style="margin-top: 0;">Jeda Maksimal (Detik)</label>
-         <input type="number" id="bcMaxDelayInput" value="35" min="12" max="600" />
-       </div>
-       <div>
-         <label for="bcBatchSizeInput" style="margin-top: 0;">Istirahat Tiap (Pesan)</label>
-         <input type="number" id="bcBatchSizeInput" value="15" min="5" max="50" />
-       </div>
-     </div>
-     <div class="kw-grid" style="margin-top: 8px;">
-       <div>
-         <label for="bcBatchPauseInput" style="margin-top: 0;">Durasi Istirahat Batch (Menit)</label>
-         <input type="number" id="bcBatchPauseInput" value="3" min="1" max="30" />
-       </div>
-       <div>
-         <label for="bcDailyLimitInput" style="margin-top: 0;">Batas Aman Harian (Pesan/Hari)</label>
-         <input type="number" id="bcDailyLimitInput" value="100" min="10" max="500" />
-       </div>
-     </div>
-     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 10px;">
-       <input type="checkbox" id="bcSafeHoursCheck" checked />
-       <span>Kirim hanya pada jam operasional aman (<strong>08:00 – 21:00 WITA</strong>)</span>
+   <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+     <label style="margin: 0; display: flex; align-items: center; gap: 6px; background: #f1f5f9; padding: 7px 12px; border-radius: 8px; cursor: pointer; font-size: 0.84rem;">
+       <input type="checkbox" id="toggleActive" checked />
+       <span>Auto-Reply Aktif</span>
      </label>
+     <button id="btnLogout" class="danger sm">Putuskan WA</button>
    </div>
-
-   <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
-     <button type="button" id="btnStartBroadcast">🚀 Mulai Kirim Broadcast</button>
-     <button type="button" class="secondary" onclick="previewBroadcastSample()">👁️ Lihat Variasi Pesan</button>
-   </div>
-
-   <!-- Daftar Kampanye & Progres Live -->
-   <div id="bcCampaignList" style="margin-top: 14px;"></div>
  </div>
 
- <!-- Panel Log Chat WhatsApp (Dikelompokkan Per Nomor) -->
- <div class="card">
-   <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
-     <div>
-       <h2 style="margin: 0;">💬 Riwayat Chat WhatsApp (Per Nomor)</h2>
-       <span id="syncStatusPill" class="sync-pill" style="display: inline-block; margin-top: 4px;">Menyinkronkan chat...</span>
+ <!-- Navigasi 4 Tab Halaman -->
+ <nav class="tab-nav" role="tablist">
+   <button type="button" class="tab-btn active" data-tab="tab-chat" onclick="switchTab('tab-chat')">
+     <span>💬 Chat & Antrean</span>
+     <span id="tabChatBadge" class="tab-badge hidden">0</span>
+   </button>
+   <button type="button" class="tab-btn" data-tab="tab-broadcast" onclick="switchTab('tab-broadcast')">
+     <span>📣 Broadcast</span>
+     <span id="tabBroadcastBadge" class="tab-badge green hidden">Aktif</span>
+   </button>
+   <button type="button" class="tab-btn" data-tab="tab-autoreply" onclick="switchTab('tab-autoreply')">
+     <span>🤖 Auto-Reply</span>
+   </button>
+   <button type="button" class="tab-btn" data-tab="tab-reports" onclick="switchTab('tab-reports')">
+     <span>📊 Laporan</span>
+   </button>
+ </nav>
+
+ <!-- ========================================================= -->
+ <!-- TAB 1: CHAT & ANTREAN ADMIN                               -->
+ <!-- ========================================================= -->
+ <div id="tab-chat" class="tab-pane">
+   <!-- Panel Daftar Nomor Menunggu Balasan Admin -->
+   <div id="pausedCard" class="card hidden" style="border-color: #fb923c;">
+     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+       <h3 style="margin: 0; color: #c2410c;">📥 Antrean Chat Admin <span id="waitingCountBadge" class="badge-wait" style="margin-left: 6px;">0 Menunggu</span></h3>
+       <small style="color: #64748b;">Klik nomor untuk membuka chat langsung di WhatsApp</small>
      </div>
-     <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-       <select id="logFilterSelect" class="compact-select" style="font-size: 0.8rem; padding: 6px 10px;">
-         <option value="all" selected>Semua Kontak</option>
-         <option value="bot_reply">Dibalas Bot</option>
-         <option value="admin_direct">Dibalas Admin</option>
-         <option value="incoming_only">Dialihkan / Masuk</option>
-       </select>
-       <button class="secondary sm" onclick="triggerChatSync()">🔄 Sinkronkan</button>
-     </div>
+     <div id="pausedList"></div>
    </div>
 
-   <div id="waShell" class="wa-shell">
-     <div class="wa-sidebar">
-       <div class="wa-search-bar">
-         <input type="text" id="chatSearchInput" placeholder="🔍 Cari nama, nomor, atau isi chat..." />
+   <!-- Panel Log Chat WhatsApp (Dikelompokkan Per Nomor) -->
+   <div class="card">
+     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+       <div>
+         <h2 style="margin: 0;">💬 Riwayat Chat WhatsApp (Per Nomor)</h2>
+         <span id="syncStatusPill" class="sync-pill" style="display: inline-block; margin-top: 4px;">Menyinkronkan chat...</span>
        </div>
-       <div id="waContactList" class="wa-contact-list">
-         <div style="padding: 16px; color: #64748b; font-size: 0.85rem;">Memuat daftar chat...</div>
+       <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+         <select id="logFilterSelect" class="compact-select" style="font-size: 0.8rem; padding: 6px 10px;">
+           <option value="all" selected>Semua Kontak</option>
+           <option value="bot_reply">Dibalas Bot</option>
+           <option value="admin_direct">Dibalas Admin</option>
+           <option value="incoming_only">Dialihkan / Masuk</option>
+         </select>
+         <button class="secondary sm" onclick="triggerChatSync()">🔄 Sinkronkan</button>
        </div>
      </div>
 
-     <div class="wa-chat-panel">
-       <div id="waChatHeader" class="wa-chat-header hidden">
-         <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
-           <button type="button" class="wa-back-btn" onclick="closeMobileChat()">&larr; Kembali</button>
-           <div id="waHeaderAvatar" class="wa-avatar" style="width: 36px; height: 36px; font-size: 0.82rem;">WA</div>
-           <div style="min-width: 0;">
-             <div id="waHeaderName" style="font-weight: 700; font-size: 0.92rem; color: #111b21; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-</div>
-             <div id="waHeaderSub" style="font-size: 0.75rem; color: #54656f;">-</div>
+     <div id="waShell" class="wa-shell">
+       <div class="wa-sidebar">
+         <div class="wa-search-bar">
+           <input type="text" id="chatSearchInput" placeholder="🔍 Cari nama, nomor, atau isi chat..." />
+         </div>
+         <div id="waContactList" class="wa-contact-list">
+           <div style="padding: 16px; color: #64748b; font-size: 0.85rem;">Memuat daftar chat...</div>
+         </div>
+       </div>
+
+       <div class="wa-chat-panel">
+         <div id="waChatHeader" class="wa-chat-header hidden">
+           <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+             <button type="button" class="wa-back-btn" onclick="closeMobileChat()">&larr; Kembali</button>
+             <div id="waHeaderAvatar" class="wa-avatar" style="width: 36px; height: 36px; font-size: 0.82rem;">WA</div>
+             <div style="min-width: 0;">
+               <div id="waHeaderName" style="font-weight: 700; font-size: 0.92rem; color: #111b21; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-</div>
+               <div id="waHeaderSub" style="font-size: 0.75rem; color: #54656f;">-</div>
+             </div>
+           </div>
+           <a id="waHeaderOpenLink" href="#" target="_blank" rel="noopener noreferrer" class="btn-link sm hidden">💬 Balas di WA</a>
+         </div>
+
+         <div id="waMessagesContainer" class="wa-messages-scroll">
+           <div class="wa-empty-state">
+             <div style="font-size: 2rem; margin-bottom: 8px;">💬</div>
+             <div>Pilih salah satu nomor di sebelah kiri untuk melihat riwayat percakapan.</div>
            </div>
          </div>
-         <a id="waHeaderOpenLink" href="#" target="_blank" rel="noopener noreferrer" class="btn-link sm hidden">💬 Balas di WA</a>
+         <button type="button" id="waScrollBottomBtn" class="wa-scroll-bottom-btn hidden" onclick="scrollChatToBottom()">⬇️ Pesan baru</button>
        </div>
+     </div>
+   </div>
+ </div>
 
-       <div id="waMessagesContainer" class="wa-messages-scroll">
-         <div class="wa-empty-state">
-           <div style="font-size: 2rem; margin-bottom: 8px;">💬</div>
-           <div>Pilih salah satu nomor di sebelah kiri untuk melihat riwayat percakapan.</div>
+ <!-- ========================================================= -->
+ <!-- TAB 2: BROADCAST PESAN (ANTI-SPAM)                        -->
+ <!-- ========================================================= -->
+ <div id="tab-broadcast" class="tab-pane hidden">
+   <div class="card" style="border-color: #86efac;">
+     <div class="header-bar" style="margin-bottom: 0.75rem;">
+       <div>
+         <h2 style="margin: 0;">📣 Broadcast Pesan (Anti-Spam)</h2>
+         <small style="color: #64748b;">Kirim info promo ke seluruh kontak dengan jeda acak & variasi kalimat otomatis</small>
+       </div>
+       <div style="display: flex; gap: 8px; align-items: center;">
+         <span id="contactCountPill" class="sync-pill ok">0 Kontak</span>
+         <button type="button" class="secondary sm" onclick="triggerChatSync()">🔄 Tarik Kontak</button>
+       </div>
+     </div>
+
+     <div class="kw-grid">
+       <div>
+         <label for="bcTitleInput">Nama / Judul Broadcast</label>
+         <input type="text" id="bcTitleInput" placeholder="Contoh: Promo Cetak Undangan & Stiker" />
+       </div>
+       <div>
+         <label for="bcTargetSelect">Target Penerima</label>
+         <select id="bcTargetSelect">
+           <option value="all_active" selected>Seluruh Kontak Tersimpan</option>
+           <option value="never_broadcasted">Kontak yang Belum Pernah Dikirimi Broadcast</option>
+           <option value="chat_only">Hanya Kontak dari Riwayat Chat</option>
+           <option value="manual_only">Hanya Nomor Tambahan di Bawah</option>
+         </select>
+       </div>
+     </div>
+
+     <label for="bcExtraNumbersInput">Tambah Nomor Ekstra / Manual (Opsional, pisahkan koma atau baris baru)</label>
+     <textarea id="bcExtraNumbersInput" rows="2" placeholder="Contoh: 081234567890, 085299887766"></textarea>
+
+     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 0.75rem;">
+       <label for="bcMessageInput" style="margin: 0;">Isi Pesan Broadcast (Mendukung Spintax Anti-Spam)</label>
+       <button type="button" class="secondary sm" onclick="insertBroadcastSample()">✨ Sisipkan Contoh Spintax</button>
+     </div>
+     <textarea id="bcMessageInput" rows="4" placeholder="{Halo|Hai|Assalamualaikum} Kak *{nama}* 👋, {salam}! Ada info promo terbaru dari *Muflih Print*..."></textarea>
+     <div class="var-hint">
+       Gunakan variasi acak <code>{kata1|kata2|kata3}</code> agar teks tidak identik pada setiap penerima, serta variabel <code>{nama}</code> & <code>{salam}</code>.
+     </div>
+
+     <div id="bcLivePreviewBox" class="bc-preview-box hidden"></div>
+
+     <!-- Pengaturan Anti-Spam -->
+     <div class="bc-safety-box">
+       <div style="font-weight: 700; font-size: 0.85rem; color: #15803d; margin-bottom: 6px;">🛡️ Pengaturan Perlindungan Anti-Spam</div>
+       <div class="grid-3">
+         <div>
+           <label for="bcMinDelayInput" style="margin-top: 0;">Jeda Minimal (Detik)</label>
+           <input type="number" id="bcMinDelayInput" value="15" min="8" max="300" />
+         </div>
+         <div>
+           <label for="bcMaxDelayInput" style="margin-top: 0;">Jeda Maksimal (Detik)</label>
+           <input type="number" id="bcMaxDelayInput" value="35" min="12" max="600" />
+         </div>
+         <div>
+           <label for="bcBatchSizeInput" style="margin-top: 0;">Istirahat Tiap (Pesan)</label>
+           <input type="number" id="bcBatchSizeInput" value="15" min="5" max="50" />
          </div>
        </div>
-       <button type="button" id="waScrollBottomBtn" class="wa-scroll-bottom-btn hidden" onclick="scrollChatToBottom()">⬇️ Pesan baru</button>
-     </div>
-   </div>
- </div>
-
- <!-- Panel Laporan Chat Masuk & Durasi Balas -->
- <div class="card">
-   <div class="header-bar" style="margin-bottom: 1rem;">
-     <div>
-       <h2 style="margin: 0;">📊 Laporan Chat Masuk & Durasi Balas</h2>
-       <small style="color: #64748b;">Statistik chat harian (WITA) & kecepatan respons balasan</small>
-     </div>
-     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-       <select id="reportPeriodSelect" class="compact-select">
-         <option value="1">Hari Ini</option>
-         <option value="7" selected>7 Hari Terakhir</option>
-         <option value="14">14 Hari Terakhir</option>
-         <option value="30">30 Hari Terakhir</option>
-       </select>
-       <button class="secondary sm" onclick="loadReports()">Refresh</button>
-     </div>
-   </div>
-
-   <div class="kpi-grid">
-     <div class="kpi-box">
-       <div class="kpi-label">Chat Masuk (Sesi Nomor)</div>
-       <div id="kpiUniqueChats" class="kpi-value">0</div>
-       <div id="kpiNewContactsSub" class="kpi-sub">0 kontak baru pertama kali</div>
-     </div>
-     <div class="kpi-box">
-       <div class="kpi-label">Total Pesan Masuk</div>
-       <div id="kpiTotalIncoming" class="kpi-value">0</div>
-       <div id="kpiAdminReqSub" class="kpi-sub" style="color:#c2410c;">0 butuh admin</div>
-     </div>
-     <div class="kpi-box">
-       <div class="kpi-label">Rata-Rata Balas Admin</div>
-       <div id="kpiAvgAdminTime" class="kpi-value">-</div>
-       <div id="kpiAdminCountSub" class="kpi-sub" style="color:#7e22ce;">0 balasan admin</div>
-     </div>
-     <div class="kpi-box">
-       <div class="kpi-label">Rata-Rata Balas Bot</div>
-       <div id="kpiAvgBotTime" class="kpi-value">-</div>
-       <div id="kpiBotCountSub" class="kpi-sub">0 balasan otomatis</div>
-     </div>
-   </div>
-
-   <div class="report-split">
-     <div class="sub-panel">
-       <h4>
-         <span>⏱️ Durasi Balas Chat</span>
-         <select id="durationScopeSelect" class="compact-select" style="font-size: 0.78rem; padding: 4px 8px;">
-           <option value="admin" selected>Khusus Admin Langsung</option>
-           <option value="all">Semua (Bot + Admin)</option>
-         </select>
-       </h4>
-       <div id="durationBucketsBox">
-         <div style="color: #64748b; font-size: 0.85rem;">Memuat data durasi...</div>
+       <div class="kw-grid" style="margin-top: 8px;">
+         <div>
+           <label for="bcBatchPauseInput" style="margin-top: 0;">Durasi Istirahat Batch (Menit)</label>
+           <input type="number" id="bcBatchPauseInput" value="3" min="1" max="30" />
+         </div>
+         <div>
+           <label for="bcDailyLimitInput" style="margin-top: 0;">Batas Aman Harian (Pesan/Hari)</label>
+           <input type="number" id="bcDailyLimitInput" value="100" min="10" max="500" />
+         </div>
        </div>
-     </div>
-
-     <div class="sub-panel">
-       <h4><span>📅 Chat Masuk per Hari (WITA)</span></h4>
-       <div class="table-wrap">
-         <table class="report-table">
-           <thead>
-             <tr>
-               <th>Tanggal</th>
-               <th class="num-col">Nomor Chat</th>
-               <th class="num-col">Kontak Baru</th>
-               <th class="num-col">Total Pesan</th>
-               <th class="num-col">Ke Admin</th>
-             </tr>
-           </thead>
-           <tbody id="dailyReportBody">
-             <tr><td colspan="5" style="color:#64748b;">Memuat data harian...</td></tr>
-           </tbody>
-         </table>
-       </div>
-     </div>
-   </div>
- </div>
-
- <!-- Panel Pengaturan Auto-Reply -->
- <div class="card">
-   <div class="header-bar">
-     <div>
-       <h2 style="margin: 0;">Auto-Reply WhatsApp (Supabase)</h2>
-       <small style="color: #64748b;">Sinkronisasi real-time antar perangkat</small>
-     </div>
-     <div style="display: flex; gap: 8px; align-items: center;">
-       <label style="margin: 0; display: flex; align-items: center; gap: 6px; background: #f1f5f9; padding: 8px 12px; border-radius: 8px; cursor: pointer;">
-         <input type="checkbox" id="toggleActive" checked />
-         <span>Auto-Reply Aktif</span>
+       <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 10px;">
+         <input type="checkbox" id="bcSafeHoursCheck" checked />
+         <span>Kirim hanya pada jam operasional aman (<strong>08:00 – 21:00 WITA</strong>)</span>
        </label>
-       <button id="btnLogout" class="danger">Putuskan WA</button>
      </div>
+
+     <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+       <button type="button" id="btnStartBroadcast">🚀 Mulai Kirim Broadcast</button>
+       <button type="button" class="secondary" onclick="previewBroadcastSample()">👁️ Lihat Variasi Pesan</button>
+     </div>
+
+     <!-- Daftar Kampanye & Progres Live -->
+     <div id="bcCampaignList" style="margin-top: 14px;"></div>
    </div>
+ </div>
 
-   <h3 id="formTitle" style="margin-bottom: 0.5rem;">Tambah Format Balasan Baru</h3>
-
-   <label style="display: flex; align-items: center; gap: 8px; background: #fffbeb; border: 1px solid #fde68a; padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-top: 0.5rem;">
-     <input type="checkbox" id="isDefaultCheck" />
-     <span>Jadikan sebagai <strong>Balasan Default</strong> (membalas jika tidak ada kata kunci yang cocok)</span>
-   </label>
-
-   <div id="keywordFieldsGrid" class="kw-grid">
-     <div>
-       <label for="exactKeywordInput">Kata Kunci Sama Persis (Pisahkan koma)</label>
-       <input type="text" id="exactKeywordInput" placeholder="Contoh: 1, 1." />
+ <!-- ========================================================= -->
+ <!-- TAB 3: PENGATURAN AUTO-REPLY                              -->
+ <!-- ========================================================= -->
+ <div id="tab-autoreply" class="tab-pane hidden">
+   <div class="card">
+     <div class="header-bar">
+       <div>
+         <h2 style="margin: 0;">🤖 Aturan Auto-Reply WhatsApp</h2>
+         <small style="color: #64748b;">Sinkronisasi real-time antar perangkat</small>
+       </div>
      </div>
-     <div>
-       <label for="containsKeywordInput">Mengandung Kata Kunci (Pisahkan koma)</label>
-       <input type="text" id="containsKeywordInput" placeholder="Contoh: alamat, lokasi, maps" />
-     </div>
-   </div>
 
-   <label id="pauseBotLabel" style="display: flex; align-items: center; gap: 8px; background: #fff7ed; border: 1px solid #fed7aa; padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-top: 0.75rem;">
-     <input type="checkbox" id="pauseBotCheck" />
-     <span><strong>Alihkan ke Admin:</strong> Jeda balasan otomatis untuk nomor ini selama 60 menit</span>
-   </label>
+     <h3 id="formTitle" style="margin-bottom: 0.5rem;">Tambah Format Balasan Baru</h3>
 
-   <label for="replyInput">Format Pesan Balasan</label>
-   <textarea id="replyInput" rows="5" placeholder="Halo Kak *{nama}* 👋..."></textarea>
-   <div class="var-hint">Variabel: <code>{nama}</code>, <code>{nomor}</code>, <code>{pesan}</code>. Gunakan <code>*teks*</code> untuk huruf tebal.</div>
-
-   <label id="followupCheckLabel" style="display: flex; align-items: center; gap: 8px; background: #eff6ff; border: 1px solid #bfdbfe; padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-top: 0.75rem;">
-     <input type="checkbox" id="expectsFollowupCheck" />
-     <span><strong>Tunggu Jawaban Lanjutan (Konteks):</strong> Deteksi jika pesan berikutnya berkaitan dengan balasan ini</span>
-   </label>
-
-   <div id="followupFieldsBox" class="hidden" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; margin-top: 8px;">
-     <label for="followupKeywordsInput" style="margin-top: 0;">Kata Kunci Jawaban Berkaitan (Pisahkan koma)</label>
-     <input type="text" id="followupKeywordsInput" placeholder="Contoh: undangan, stiker, brosur, pcs, lembar" />
-
-     <label for="followupReplyInput">Balasan Lanjutan Jika Berkaitan</label>
-     <textarea id="followupReplyInput" rows="3" placeholder="Terima kasih infonya Kak *{nama}*, detail (*{pesan}*) diteruskan ke Admin..."></textarea>
-
-     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 8px;">
-       <input type="checkbox" id="followupPauseCheck" checked />
-       <span>Otomatis alihkan ke Antrean Admin (jeda bot 60 menit) setelah balasan lanjutan terkirim</span>
+     <label style="display: flex; align-items: center; gap: 8px; background: #fffbeb; border: 1px solid #fde68a; padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-top: 0.5rem;">
+       <input type="checkbox" id="isDefaultCheck" />
+       <span>Jadikan sebagai <strong>Balasan Default</strong> (membalas jika tidak ada kata kunci yang cocok)</span>
      </label>
+
+     <div id="keywordFieldsGrid" class="kw-grid">
+       <div>
+         <label for="exactKeywordInput">Kata Kunci Sama Persis (Pisahkan koma)</label>
+         <input type="text" id="exactKeywordInput" placeholder="Contoh: 1, 1." />
+       </div>
+       <div>
+         <label for="containsKeywordInput">Mengandung Kata Kunci (Pisahkan koma)</label>
+         <input type="text" id="containsKeywordInput" placeholder="Contoh: alamat, lokasi, maps" />
+       </div>
+     </div>
+
+     <label id="pauseBotLabel" style="display: flex; align-items: center; gap: 8px; background: #fff7ed; border: 1px solid #fed7aa; padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-top: 0.75rem;">
+       <input type="checkbox" id="pauseBotCheck" />
+       <span><strong>Alihkan ke Admin:</strong> Jeda balasan otomatis untuk nomor ini selama 60 menit</span>
+     </label>
+
+     <label for="replyInput">Format Pesan Balasan</label>
+     <textarea id="replyInput" rows="5" placeholder="Halo Kak *{nama}* 👋..."></textarea>
+     <div class="var-hint">Variabel: <code>{nama}</code>, <code>{nomor}</code>, <code>{pesan}</code>. Gunakan <code>*teks*</code> untuk huruf tebal.</div>
+
+     <label id="followupCheckLabel" style="display: flex; align-items: center; gap: 8px; background: #eff6ff; border: 1px solid #bfdbfe; padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-top: 0.75rem;">
+       <input type="checkbox" id="expectsFollowupCheck" />
+       <span><strong>Tunggu Jawaban Lanjutan (Konteks):</strong> Deteksi jika pesan berikutnya berkaitan dengan balasan ini</span>
+     </label>
+
+     <div id="followupFieldsBox" class="hidden" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; margin-top: 8px;">
+       <label for="followupKeywordsInput" style="margin-top: 0;">Kata Kunci Jawaban Berkaitan (Pisahkan koma)</label>
+       <input type="text" id="followupKeywordsInput" placeholder="Contoh: undangan, stiker, brosur, pcs, lembar" />
+
+       <label for="followupReplyInput">Balasan Lanjutan Jika Berkaitan</label>
+       <textarea id="followupReplyInput" rows="3" placeholder="Terima kasih infonya Kak *{nama}*, detail (*{pesan}*) diteruskan ke Admin..."></textarea>
+
+       <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 8px;">
+         <input type="checkbox" id="followupPauseCheck" checked />
+         <span>Otomatis alihkan ke Antrean Admin (jeda bot 60 menit) setelah balasan lanjutan terkirim</span>
+       </label>
+     </div>
+
+     <div style="display: flex; gap: 8px; margin-top: 12px;">
+       <button id="btnAddRule">+ Simpan Aturan Balasan</button>
+       <button id="btnCancelEdit" class="secondary hidden">Batal Edit</button>
+     </div>
    </div>
 
-   <div style="display: flex; gap: 8px; margin-top: 12px;">
-     <button id="btnAddRule">+ Simpan Aturan Balasan</button>
-     <button id="btnCancelEdit" class="secondary hidden">Batal Edit</button>
+   <div class="card">
+     <h3 style="margin-top: 0;">Daftar Format Balasan Aktif</h3>
+     <div id="rulesList"></div>
    </div>
  </div>
 
- <div class="card">
-   <h3 style="margin-top: 0;">Daftar Format Balasan Aktif</h3>
-   <div id="rulesList"></div>
+ <!-- ========================================================= -->
+ <!-- TAB 4: LAPORAN CHAT MASUK & DURASI BALAS                  -->
+ <!-- ========================================================= -->
+ <div id="tab-reports" class="tab-pane hidden">
+   <div class="card">
+     <div class="header-bar" style="margin-bottom: 1rem;">
+       <div>
+         <h2 style="margin: 0;">📊 Laporan Chat Masuk & Durasi Balas</h2>
+         <small style="color: #64748b;">Statistik chat harian (WITA) & kecepatan respons balasan</small>
+       </div>
+       <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+         <select id="reportPeriodSelect" class="compact-select">
+           <option value="1">Hari Ini</option>
+           <option value="7" selected>7 Hari Terakhir</option>
+           <option value="14">14 Hari Terakhir</option>
+           <option value="30">30 Hari Terakhir</option>
+         </select>
+         <button class="secondary sm" onclick="loadReports()">Refresh</button>
+       </div>
+     </div>
+
+     <div class="kpi-grid">
+       <div class="kpi-box">
+         <div class="kpi-label">Chat Masuk (Sesi Nomor)</div>
+         <div id="kpiUniqueChats" class="kpi-value">0</div>
+         <div id="kpiNewContactsSub" class="kpi-sub">0 kontak baru pertama kali</div>
+       </div>
+       <div class="kpi-box">
+         <div class="kpi-label">Total Pesan Masuk</div>
+         <div id="kpiTotalIncoming" class="kpi-value">0</div>
+         <div id="kpiAdminReqSub" class="kpi-sub" style="color:#c2410c;">0 butuh admin</div>
+       </div>
+       <div class="kpi-box">
+         <div class="kpi-label">Rata-Rata Balas Admin</div>
+         <div id="kpiAvgAdminTime" class="kpi-value">-</div>
+         <div id="kpiAdminCountSub" class="kpi-sub" style="color:#7e22ce;">0 balasan admin</div>
+       </div>
+       <div class="kpi-box">
+         <div class="kpi-label">Rata-Rata Balas Bot</div>
+         <div id="kpiAvgBotTime" class="kpi-value">-</div>
+         <div id="kpiBotCountSub" class="kpi-sub">0 balasan otomatis</div>
+       </div>
+     </div>
+
+     <div class="report-split">
+       <div class="sub-panel">
+         <h4>
+           <span>⏱️ Durasi Balas Chat</span>
+           <select id="durationScopeSelect" class="compact-select" style="font-size: 0.78rem; padding: 4px 8px;">
+             <option value="admin" selected>Khusus Admin Langsung</option>
+             <option value="all">Semua (Bot + Admin)</option>
+           </select>
+         </h4>
+         <div id="durationBucketsBox">
+           <div style="color: #64748b; font-size: 0.85rem;">Memuat data durasi...</div>
+         </div>
+       </div>
+
+       <div class="sub-panel">
+         <h4><span>📅 Chat Masuk per Hari (WITA)</span></h4>
+         <div class="table-wrap">
+           <table class="report-table">
+             <thead>
+               <tr>
+                 <th>Tanggal</th>
+                 <th class="num-col">Nomor Chat</th>
+                 <th class="num-col">Kontak Baru</th>
+                 <th class="num-col">Total Pesan</th>
+                 <th class="num-col">Ke Admin</th>
+               </tr>
+             </thead>
+             <tbody id="dailyReportBody">
+               <tr><td colspan="5" style="color:#64748b;">Memuat data harian...</td></tr>
+             </tbody>
+           </table>
+         </div>
+       </div>
+     </div>
+   </div>
  </div>
+
 </div>
 
 <script>
  const SUPABASE_URL = 'https://zqxeoveanevsvynptckm.supabase.co';
  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxeGVvdmVhbmV2c3Z5bnB0Y2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNzUzODEsImV4cCI6MjA4OTg1MTM4MX0.eeIaytpW1wtWPJc2FbhufkDkhONUt9yypTZU4dTVmsM';
  const BOT_ID = 'bot_utama';
+ const ACTIVE_TAB_KEY = 'wa_dashboard_active_tab';
 
  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
  let currentRules = [];
@@ -581,6 +694,31 @@
  let lastRenderedChatKey = null;
  let lastRenderedChatHtml = '';
  let syncTimeoutTimer = null;
+
+ // --- Navigasi 4 Tab ---
+ function switchTab(tabId) {
+   const validTabs = ['tab-chat', 'tab-broadcast', 'tab-autoreply', 'tab-reports'];
+   const targetId = validTabs.includes(tabId) ? tabId : 'tab-chat';
+
+   document.querySelectorAll('.tab-pane').forEach(pane => {
+     pane.classList.toggle('hidden', pane.id !== targetId);
+   });
+
+   document.querySelectorAll('.tab-btn').forEach(btn => {
+     btn.classList.toggle('active', btn.dataset.tab === targetId);
+   });
+
+   try {
+     localStorage.setItem(ACTIVE_TAB_KEY, targetId);
+   } catch (_) {}
+
+   if (targetId === 'tab-chat') {
+     lastRenderedChatKey = null;
+     renderGroupedWhatsAppView();
+   } else if (targetId === 'tab-reports') {
+     loadReports();
+   }
+ }
 
  function escapeHtml(str) {
    return String(str || '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
@@ -712,7 +850,7 @@
 
  document.getElementById('bcMessageInput').addEventListener('input', previewBroadcastSample);
 
-document.getElementById('btnStartBroadcast').addEventListener('click', async () => {
+ document.getElementById('btnStartBroadcast').addEventListener('click', async () => {
    const btn = document.getElementById('btnStartBroadcast');
    const title = document.getElementById('bcTitleInput').value.trim() || 'Broadcast Promo';
    const targetMode = document.getElementById('bcTargetSelect').value;
@@ -801,7 +939,7 @@ document.getElementById('btnStartBroadcast').addEventListener('click', async () 
      btn.textContent = '🚀 Mulai Kirim Broadcast';
    }
  });
- 
+
  async function loadBroadcasts() {
    const { data } = await db
      .from('wa_broadcasts')
@@ -810,6 +948,10 @@ document.getElementById('btnStartBroadcast').addEventListener('click', async () 
      .limit(6);
 
    const container = document.getElementById('bcCampaignList');
+   const bcTabBadge = document.getElementById('tabBroadcastBadge');
+   const hasRunning = (data || []).some(bc => bc.status === 'running');
+   if (bcTabBadge) bcTabBadge.classList.toggle('hidden', !hasRunning);
+
    if (!data || data.length === 0) {
      container.innerHTML = '';
      return;
@@ -1442,16 +1584,23 @@ document.getElementById('btnStartBroadcast').addEventListener('click', async () 
    const card = document.getElementById('pausedCard');
    const container = document.getElementById('pausedList');
    const countBadge = document.getElementById('waitingCountBadge');
+   const tabChatBadge = document.getElementById('tabChatBadge');
 
    if (!list || list.length === 0) {
      card.classList.add('hidden');
      container.innerHTML = '';
+     if (tabChatBadge) tabChatBadge.classList.add('hidden');
      return;
    }
 
    const waitingCount = list.filter(u => u.needs_reply).length;
    countBadge.textContent = `${waitingCount} Menunggu Balasan`;
    countBadge.style.display = waitingCount > 0 ? 'inline-block' : 'none';
+
+   if (tabChatBadge) {
+     tabChatBadge.textContent = waitingCount;
+     tabChatBadge.classList.toggle('hidden', waitingCount === 0);
+   }
 
    card.classList.remove('hidden');
    container.innerHTML = list.map(u => {
@@ -1623,6 +1772,7 @@ document.getElementById('btnStartBroadcast').addEventListener('click', async () 
    const r = currentRules.find(item => item.id === id);
    if (!r) return;
 
+   switchTab('tab-autoreply');
    editingRuleId = id;
    document.getElementById('formTitle').textContent = 'Edit Aturan Balasan';
    document.getElementById('isDefaultCheck').checked = r.is_default;
@@ -1657,6 +1807,12 @@ document.getElementById('btnStartBroadcast').addEventListener('click', async () 
      await db.from('wa_bot_config').update({ status: 'logout_requested' }).eq('id', BOT_ID);
    }
  });
+
+ // Pulihkan tab terakhir yang dibuka
+ try {
+   const savedTab = localStorage.getItem(ACTIVE_TAB_KEY);
+   if (savedTab) switchTab(savedTab);
+ } catch (_) {}
 
  // Inisialisasi awal & Supabase Realtime
  loadBotConfig();
