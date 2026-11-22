@@ -29,7 +29,7 @@
  button.danger:hover { background: #b91c1c; }
  button.sm, .btn-link.sm { padding: 7px 11px; font-size: 0.8rem; }
 
- /* Top Bar & Navigasi 4 Tab */
+ /* Top Bar & Navigasi 4 Tab (Sticky saat di-scroll) */
  .top-app-bar {
    background: #fff;
    border: 1px solid #e2e8f0;
@@ -44,13 +44,20 @@
    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
  }
  .tab-nav {
+   position: sticky;
+   top: 10px;
+   z-index: 50;
    display: grid;
    grid-template-columns: repeat(4, 1fr);
    gap: 8px;
-   background: #e2e8f0;
+   background: rgba(226, 232, 240, 0.94);
+   backdrop-filter: blur(8px);
+   -webkit-backdrop-filter: blur(8px);
    padding: 6px;
    border-radius: 12px;
+   border: 1px solid #cbd5e1;
    margin-bottom: 1.25rem;
+   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
  }
  .tab-btn {
    background: transparent;
@@ -68,13 +75,13 @@
    transition: all 0.15s ease;
  }
  .tab-btn:hover {
-   background: rgba(255, 255, 255, 0.55);
+   background: rgba(255, 255, 255, 0.65);
    color: #0f172a;
  }
  .tab-btn.active {
    background: #ffffff;
    color: #15803d;
-   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.1);
  }
  .tab-badge {
    background: #dc2626;
@@ -89,7 +96,7 @@
    background: #16a34a;
  }
  @media (max-width: 620px) {
-   .tab-nav { grid-template-columns: repeat(2, 1fr); }
+   .tab-nav { grid-template-columns: repeat(2, 1fr); top: 6px; }
    .tab-btn { font-size: 0.84rem; padding: 9px 8px; }
  }
 
@@ -353,7 +360,7 @@
    </div>
  </div>
 
- <!-- Navigasi 4 Tab Halaman -->
+ <!-- Navigasi 4 Tab Halaman (Tetap terlihat saat di-scroll) -->
  <nav class="tab-nav" role="tablist">
    <button type="button" class="tab-btn active" data-tab="tab-chat" onclick="switchTab('tab-chat')">
      <span>💬 Chat & Antrean</span>
@@ -695,8 +702,8 @@
  let lastRenderedChatHtml = '';
  let syncTimeoutTimer = null;
 
- // --- Navigasi 4 Tab ---
- function switchTab(tabId) {
+ // --- Navigasi 4 Tab + Otomatis Kembali ke Atas ---
+ function switchTab(tabId, scrollToTop = true) {
    const validTabs = ['tab-chat', 'tab-broadcast', 'tab-autoreply', 'tab-reports'];
    const targetId = validTabs.includes(tabId) ? tabId : 'tab-chat';
 
@@ -711,6 +718,10 @@
    try {
      localStorage.setItem(ACTIVE_TAB_KEY, targetId);
    } catch (_) {}
+
+   if (scrollToTop) {
+     window.scrollTo({ top: 0, behavior: 'smooth' });
+   }
 
    if (targetId === 'tab-chat') {
      lastRenderedChatKey = null;
@@ -1772,7 +1783,7 @@
    const r = currentRules.find(item => item.id === id);
    if (!r) return;
 
-   switchTab('tab-autoreply');
+   switchTab('tab-autoreply', true);
    editingRuleId = id;
    document.getElementById('formTitle').textContent = 'Edit Aturan Balasan';
    document.getElementById('isDefaultCheck').checked = r.is_default;
@@ -1793,7 +1804,6 @@
    document.getElementById('replyInput').value = r.reply;
    document.getElementById('btnAddRule').textContent = 'Simpan Perubahan';
    document.getElementById('btnCancelEdit').classList.remove('hidden');
-   window.scrollTo({ top: 0, behavior: 'smooth' });
  }
 
  async function deleteRule(id) {
@@ -1808,19 +1818,40 @@
    }
  });
 
- // Pulihkan tab terakhir yang dibuka
+ // Pulihkan tab terakhir yang dibuka tanpa memaksa scroll saat load awal
  try {
    const savedTab = localStorage.getItem(ACTIVE_TAB_KEY);
-   if (savedTab) switchTab(savedTab);
+   if (savedTab) switchTab(savedTab, false);
  } catch (_) {}
 
- // Inisialisasi awal & Supabase Realtime
+// Inisialisasi awal & Supabase Realtime (dengan Auto-Reconnect & Fallback)
+ let isFetchingLogs = false;
+ let logsRefreshTimer = null;
+
+ async function safeLoadLogs() {
+   if (isFetchingLogs) return;
+   isFetchingLogs = true;
+   try {
+     await loadLogs();
+   } finally {
+     isFetchingLogs = false;
+   }
+ }
+
+ function scheduleLogsRefresh(includeReports = true) {
+   clearTimeout(logsRefreshTimer);
+   logsRefreshTimer = setTimeout(() => {
+     safeLoadLogs();
+     if (includeReports) loadReports();
+   }, 350);
+ }
+
  loadBotConfig();
  loadRules();
  loadAdminQueue();
  loadContacts();
  loadBroadcasts();
- loadLogs();
+ safeLoadLogs();
  loadReports();
  triggerChatSync();
 
@@ -1829,19 +1860,53 @@
      loadBotConfig();
      if (payload.new?.last_synced_at && payload.new.last_synced_at !== payload.old?.last_synced_at) {
        loadContacts();
-       loadLogs();
-       loadReports();
+       scheduleLogsRefresh(true);
      }
    })
    .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_rules' }, loadRules)
-   .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_admin_queue' }, loadAdminQueue)
+   .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_admin_queue' }, () => {
+     loadAdminQueue();
+     scheduleLogsRefresh(false);
+   })
    .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_contacts' }, loadContacts)
    .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_broadcasts' }, loadBroadcasts)
-   .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'wa_logs' }, () => {
-     loadLogs();
-     loadReports();
+   .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_logs' }, () => {
+     scheduleLogsRefresh(true);
    })
-   .subscribe();
+   .subscribe((status) => {
+     const pill = document.getElementById('syncStatusPill');
+     if (status === 'SUBSCRIBED') {
+       if (pill) {
+         pill.classList.add('ok');
+         pill.textContent = `● Live Realtime Aktif (${formatWitaTime(Date.now())} WITA)`;
+       }
+       safeLoadLogs();
+       loadAdminQueue();
+     } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+       if (pill) {
+         pill.classList.remove('ok');
+         pill.textContent = '⚠️ Koneksi Realtime terputus, memuat ulang otomatis...';
+       }
+     }
+   });
+
+ // Muat ulang otomatis saat pengguna kembali membuka tab browser / membuka kunci layar HP
+ document.addEventListener('visibilitychange', () => {
+   if (!document.hidden) {
+     loadBotConfig();
+     loadAdminQueue();
+     safeLoadLogs();
+   }
+ });
+
+ // Pengaman cadangan setiap 8 detik khusus saat tab Chat sedang dibuka (jika WebSocket terblokir jaringan)
+ setInterval(() => {
+   const chatPane = document.getElementById('tab-chat');
+   if (!document.hidden && chatPane && !chatPane.classList.contains('hidden')) {
+     safeLoadLogs();
+     loadAdminQueue();
+   }
+ }, 8000);
 </script>
 </body>
 </html>
