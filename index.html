@@ -100,17 +100,60 @@
    .tab-btn { font-size: 0.84rem; padding: 9px 8px; }
  }
 
- /* Broadcast Panel */
+ body { font-family: system-ui, -apple-system, sans-serif; max-width: 1080px; margin: 1.25rem auto; padding: 0 1rem; background: #f8fafc; color: #0f172a; }
+
+ /* Broadcast Panel (Split Kiri: Daftar Broadcast, Kanan: Riwayat Penerima) */
  .bc-safety-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px; margin-top: 10px; }
  .bc-preview-box { background: #fefce8; border: 1px dashed #eab308; border-radius: 8px; padding: 10px 12px; margin-top: 8px; font-size: 0.84rem; color: #1e293b; white-space: pre-wrap; }
- .bc-campaign-item { border: 1px solid #e2e8f0; background: #f8fafc; border-radius: 10px; padding: 12px; margin-top: 10px; }
- .bc-progress-track { width: 100%; height: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin: 8px 0; }
+ .bc-split-shell {
+   display: grid;
+   grid-template-columns: 320px 1fr;
+   gap: 14px;
+   align-items: start;
+ }
+ .bc-sidebar {
+   border: 1px solid #e2e8f0;
+   border-radius: 10px;
+   background: #f8fafc;
+   padding: 10px;
+   max-height: 560px;
+   overflow-y: auto;
+ }
+ .bc-detail-panel {
+   border: 1px solid #e2e8f0;
+   border-radius: 10px;
+   background: #ffffff;
+   padding: 12px;
+   min-width: 0;
+ }
+ .bc-campaign-item {
+   border: 1px solid #e2e8f0;
+   background: #ffffff;
+   border-radius: 9px;
+   padding: 10px 11px;
+   margin-bottom: 8px;
+   cursor: pointer;
+   transition: all 0.15s ease;
+ }
+ .bc-campaign-item:last-child { margin-bottom: 0; }
+ .bc-campaign-item:hover { border-color: #94a3b8; background: #f8fafc; }
+ .bc-campaign-item.active {
+   background: #f0fdf4;
+   border-color: #16a34a;
+   border-left: 4px solid #16a34a;
+   box-shadow: 0 2px 6px rgba(22, 163, 74, 0.1);
+ }
+ .bc-progress-track { width: 100%; height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin: 7px 0; }
  .bc-progress-fill { height: 100%; background: #16a34a; transition: width 0.3s ease; }
- .bc-status-pill { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; }
+ .bc-status-pill { display: inline-block; font-size: 0.68rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; text-transform: uppercase; }
  .bc-status-pill.running { background: #dcfce7; color: #15803d; }
  .bc-status-pill.paused { background: #fef3c7; color: #b45309; }
  .bc-status-pill.completed { background: #dbeafe; color: #1d4ed8; }
  .bc-status-pill.cancelled { background: #fee2e2; color: #b91c1c; }
+ @media (max-width: 760px) {
+   .bc-split-shell { grid-template-columns: 1fr; }
+   .bc-sidebar { max-height: 300px; }
+ }
 
  /* Statistik & Laporan */
  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.25rem; }
@@ -448,6 +491,7 @@
  <!-- TAB 2: BROADCAST PESAN (ANTI-SPAM)                        -->
  <!-- ========================================================= -->
  <div id="tab-broadcast" class="tab-pane hidden">
+   <!-- Kartu 1: Formulir Buat Broadcast Baru -->
    <div class="card" style="border-color: #86efac;">
      <div class="header-bar" style="margin-bottom: 0.75rem;">
        <div>
@@ -527,43 +571,59 @@
        <button type="button" id="btnStartBroadcast">🚀 Mulai Kirim Broadcast</button>
        <button type="button" class="secondary" onclick="previewBroadcastSample()">👁️ Lihat Variasi Pesan</button>
      </div>
+   </div>
 
-    
-     <!-- Daftar Kampanye & Progres Live -->
-     <div id="bcCampaignList" style="margin-top: 14px;"></div>
+   <!-- Kartu 2: Daftar Broadcast (Kiri) & Riwayat Pengiriman (Kanan) -->
+   <div class="card">
+     <div class="header-bar" style="margin-bottom: 0.9rem;">
+       <div>
+         <h3 style="margin: 0;">📋 Daftar & Riwayat Broadcast</h3>
+         <small style="color: #64748b;">Klik salah satu broadcast di sebelah kiri untuk melihat detail penerima di sebelah kanan</small>
+       </div>
+       <div style="display: flex; gap: 8px; align-items: center;">
+         <span id="bcCampaignCountPill" class="sync-pill">0 Broadcast</span>
+         <button type="button" class="secondary sm" onclick="loadBroadcasts()">🔄 Refresh</button>
+       </div>
+     </div>
 
-     <!-- Panel Detail Riwayat Penerima Broadcast -->
-     <div id="bcHistoryPanel" class="hidden" style="margin-top: 16px; border-top: 2px solid #e2e8f0; padding-top: 14px;">
-       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
-         <div>
-           <h3 id="bcHistoryTitle" style="margin: 0; font-size: 1rem;">📋 Riwayat Pengiriman Broadcast</h3>
-           <small id="bcHistorySubtitle" style="color: #64748b;">Memuat daftar penerima...</small>
+     <div class="bc-split-shell">
+       <!-- Kolom Kiri: Daftar Broadcast -->
+       <div class="bc-sidebar">
+         <div id="bcCampaignList">
+           <div style="padding: 16px; color: #64748b; font-size: 0.85rem;">Memuat daftar broadcast...</div>
          </div>
-         <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+       </div>
+
+       <!-- Kolom Kanan: Detail Riwayat Penerima -->
+       <div id="bcHistoryPanel" class="bc-detail-panel">
+         <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+           <div>
+             <h3 id="bcHistoryTitle" style="margin: 0; font-size: 1rem;">📋 Riwayat Pengiriman Broadcast</h3>
+             <small id="bcHistorySubtitle" style="color: #64748b;">Pilih broadcast di sebelah kiri...</small>
+           </div>
            <select id="bcHistoryStatusFilter" class="compact-select" style="font-size: 0.8rem; padding: 6px 10px;" onchange="renderBroadcastHistoryTable()">
              <option value="all">Semua Status</option>
              <option value="sent" selected>Terkirim (Sent)</option>
              <option value="failed">Gagal / Dilewati</option>
              <option value="pending">Menunggu Antrean</option>
            </select>
-           <button type="button" class="secondary sm" onclick="closeBroadcastHistory()">✕ Tutup</button>
          </div>
-       </div>
 
-       <input type="text" id="bcHistorySearchInput" placeholder="🔍 Cari nama, nomor, atau isi pesan broadcast..." oninput="renderBroadcastHistoryTable()" style="margin-bottom: 10px;" />
+         <input type="text" id="bcHistorySearchInput" placeholder="🔍 Cari nama, nomor, atau isi pesan broadcast..." oninput="renderBroadcastHistoryTable()" style="margin-bottom: 10px;" />
 
-       <div class="table-wrap" style="max-height: 380px; border: 1px solid #e2e8f0; border-radius: 8px;">
-         <table class="report-table">
-           <thead>
-             <tr>
-               <th style="width: 110px;">Waktu (WITA)</th>
-               <th style="width: 170px;">Penerima</th>
-               <th style="width: 95px;">Status</th>
-               <th>Isi Pesan Terkirim / Keterangan</th>
-             </tr>
-           </thead>
-           <tbody id="bcHistoryTableBody"></tbody>
-         </table>
+         <div class="table-wrap" style="max-height: 430px; border: 1px solid #e2e8f0; border-radius: 8px;">
+           <table class="report-table">
+             <thead>
+               <tr>
+                 <th style="width: 105px;">Waktu (WITA)</th>
+                 <th style="width: 155px;">Penerima</th>
+                 <th style="width: 90px;">Status</th>
+                 <th>Isi Pesan Terkirim / Keterangan</th>
+               </tr>
+             </thead>
+             <tbody id="bcHistoryTableBody"></tbody>
+           </table>
+         </div>
        </div>
      </div>
    </div>
@@ -978,98 +1038,129 @@
        await db.from('wa_broadcast_recipients').insert(rowsToInsert.slice(i, i + 500));
      }
 
+     activeHistoryBroadcastId = broadcastId;
      document.getElementById('bcTitleInput').value = '';
      document.getElementById('bcExtraNumbersInput').value = '';
-     loadBroadcasts();
+     await loadBroadcasts();
    } finally {
      btn.disabled = false;
      btn.textContent = '🚀 Mulai Kirim Broadcast';
    }
  });
 
- let activeHistoryBroadcastId = null;
+let activeHistoryBroadcastId = null;
  let bcHistoryRowsCache = [];
+ let bcCampaignsCache = [];
 
  async function loadBroadcasts() {
    const { data } = await db
      .from('wa_broadcasts')
      .select('*')
      .order('created_at', { ascending: false })
-     .limit(10);
+     .limit(30);
 
-   const container = document.getElementById('bcCampaignList');
+   bcCampaignsCache = data || [];
    const bcTabBadge = document.getElementById('tabBroadcastBadge');
-   const hasRunning = (data || []).some(bc => bc.status === 'running');
+   const hasRunning = bcCampaignsCache.some(bc => bc.status === 'running');
    if (bcTabBadge) bcTabBadge.classList.toggle('hidden', !hasRunning);
 
-   if (!data || data.length === 0) {
-     container.innerHTML = '';
+   const countPill = document.getElementById('bcCampaignCountPill');
+   if (countPill) countPill.textContent = `${bcCampaignsCache.length} Broadcast`;
+
+   if (bcCampaignsCache.length === 0) {
+     activeHistoryBroadcastId = null;
+     bcHistoryRowsCache = [];
+     renderBroadcastCampaignList();
+     renderEmptyBroadcastHistory();
      return;
    }
 
-   container.innerHTML = data.map(bc => {
+   const stillExists = bcCampaignsCache.some(bc => bc.id === activeHistoryBroadcastId);
+   if (!activeHistoryBroadcastId || !stillExists) {
+     activeHistoryBroadcastId = bcCampaignsCache[0].id;
+   }
+
+   renderBroadcastCampaignList();
+
+   const selectedCampaign = bcCampaignsCache.find(bc => bc.id === activeHistoryBroadcastId);
+   if (selectedCampaign) {
+     document.getElementById('bcHistoryTitle').textContent = `📋 Riwayat: ${selectedCampaign.title}`;
+     await fetchBroadcastHistoryRows(selectedCampaign.id);
+   }
+ }
+
+ function renderBroadcastCampaignList() {
+   const container = document.getElementById('bcCampaignList');
+   if (!bcCampaignsCache || bcCampaignsCache.length === 0) {
+     container.innerHTML = '<div style="padding: 16px; color: #64748b; font-size: 0.84rem; text-align: center;">Belum ada daftar broadcast.</div>';
+     return;
+   }
+
+   container.innerHTML = bcCampaignsCache.map(bc => {
+     const isSelected = bc.id === activeHistoryBroadcastId;
      const done = (bc.sent_count || 0) + (bc.failed_count || 0);
      const pct = bc.total_recipients > 0 ? Math.min(100, Math.round((done / bc.total_recipients) * 100)) : 0;
+     const createdLabel = bc.created_at
+       ? `${formatWitaDateLabel(toWitaDateKey(bc.created_at))} • ${formatWitaTime(bc.created_at)} WITA`
+       : '';
 
-     let actionButtons = `
-       <button type="button" class="edit sm" onclick="openBroadcastHistory('${bc.id}', '${escapeHtml(bc.title).replace(/'/g, "\\'")}')">📋 Riwayat (${bc.sent_count})</button>
-     `;
-
+     let controlButtons = '';
      if (bc.status === 'running') {
-       actionButtons += `
-         <button type="button" class="warn sm" onclick="updateBroadcastStatus('${bc.id}', 'paused')">⏸️ Jeda</button>
-         <button type="button" class="danger sm" onclick="updateBroadcastStatus('${bc.id}', 'cancelled')">⏹️ Batalkan</button>
+       controlButtons = `
+         <button type="button" class="warn sm" onclick="event.stopPropagation(); updateBroadcastStatus('${bc.id}', 'paused')">⏸️ Jeda</button>
+         <button type="button" class="danger sm" onclick="event.stopPropagation(); updateBroadcastStatus('${bc.id}', 'cancelled')">⏹️ Batal</button>
        `;
      } else if (bc.status === 'paused') {
-       actionButtons += `
-         <button type="button" class="sm" onclick="updateBroadcastStatus('${bc.id}', 'running')">▶️ Lanjutkan</button>
-         <button type="button" class="danger sm" onclick="updateBroadcastStatus('${bc.id}', 'cancelled')">⏹️ Batalkan</button>
+       controlButtons = `
+         <button type="button" class="sm" onclick="event.stopPropagation(); updateBroadcastStatus('${bc.id}', 'running')">▶️ Lanjut</button>
+         <button type="button" class="danger sm" onclick="event.stopPropagation(); updateBroadcastStatus('${bc.id}', 'cancelled')">⏹️ Batal</button>
        `;
      }
 
      return `
-       <div class="bc-campaign-item">
-         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-           <div>
-             <strong>${escapeHtml(bc.title)}</strong>
-             <span class="bc-status-pill ${bc.status}" style="margin-left: 6px;">${escapeHtml(bc.status)}</span>
-           </div>
-           <div style="display: flex; gap: 6px; flex-wrap: wrap;">${actionButtons}</div>
+       <div class="bc-campaign-item ${isSelected ? 'active' : ''}" onclick="selectBroadcastCampaign('${bc.id}')">
+         <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 6px;">
+           <strong style="font-size: 0.88rem; color: #0f172a; line-height: 1.3;">${escapeHtml(bc.title)}</strong>
+           <span class="bc-status-pill ${bc.status}" style="flex-shrink: 0;">${escapeHtml(bc.status)}</span>
          </div>
+         ${createdLabel ? `<div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">${escapeHtml(createdLabel)}</div>` : ''}
          <div class="bc-progress-track">
            <div class="bc-progress-fill" style="width: ${pct}%;"></div>
          </div>
-         <div style="display: flex; justify-content: space-between; font-size: 0.78rem; color: #475569; flex-wrap: wrap; gap: 6px;">
-           <span>Terkirim: <strong>${bc.sent_count}</strong> / ${bc.total_recipients} (${pct}%)${bc.failed_count > 0 ? ` • Dilewati/Gagal: ${bc.failed_count}` : ''}</span>
-           <span>${escapeHtml(bc.current_note || '')}</span>
+         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; color: #334155;">
+           <span>Terkirim: <strong>${bc.sent_count}</strong>/${bc.total_recipients} (${pct}%)</span>
+           ${bc.failed_count > 0 ? `<span style="color:#dc2626;">Gagal: ${bc.failed_count}</span>` : ''}
          </div>
+         ${bc.current_note ? `<div style="font-size: 0.73rem; color: #64748b; margin-top: 4px; line-height: 1.3;">${escapeHtml(bc.current_note)}</div>` : ''}
+         ${controlButtons ? `<div style="display: flex; gap: 6px; margin-top: 8px;">${controlButtons}</div>` : ''}
        </div>
      `;
    }).join('');
-
-   if (activeHistoryBroadcastId) {
-     fetchBroadcastHistoryRows(activeHistoryBroadcastId);
-   }
  }
 
- async function openBroadcastHistory(broadcastId, title) {
+ async function selectBroadcastCampaign(broadcastId) {
    activeHistoryBroadcastId = broadcastId;
-   const panel = document.getElementById('bcHistoryPanel');
-   panel.classList.remove('hidden');
-   document.getElementById('bcHistoryTitle').textContent = `📋 Riwayat: ${title}`;
+   renderBroadcastCampaignList();
+
+   const selectedCampaign = bcCampaignsCache.find(bc => bc.id === broadcastId);
+   if (!selectedCampaign) return;
+
+   document.getElementById('bcHistoryTitle').textContent = `📋 Riwayat: ${selectedCampaign.title}`;
+   document.getElementById('bcHistorySubtitle').textContent = 'Memuat daftar penerima...';
    document.getElementById('bcHistoryTableBody').innerHTML =
      '<tr><td colspan="4" style="color:#64748b;">Memuat data pengiriman...</td></tr>';
-   panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
    await fetchBroadcastHistoryRows(broadcastId);
  }
 
- function closeBroadcastHistory() {
-   activeHistoryBroadcastId = null;
-   bcHistoryRowsCache = [];
-   document.getElementById('bcHistoryPanel').classList.add('hidden');
+ function renderEmptyBroadcastHistory() {
+   document.getElementById('bcHistoryTitle').textContent = '📋 Riwayat Pengiriman Broadcast';
+   document.getElementById('bcHistorySubtitle').textContent = 'Belum ada kampanye broadcast';
+   document.getElementById('bcHistoryTableBody').innerHTML =
+     '<tr><td colspan="4" style="color:#64748b; text-align:center; padding: 28px 12px;">Belum ada riwayat pengiriman broadcast. Buat broadcast baru pada formulir di atas untuk mulai mengirim.</td></tr>';
  }
 
-async function fetchBroadcastHistoryRows(broadcastId) {
+ async function fetchBroadcastHistoryRows(broadcastId) {
    let allRows = [];
    let from = 0;
    const pageSize = 1000;
@@ -1111,7 +1202,7 @@ async function fetchBroadcastHistoryRows(broadcastId) {
 
    renderBroadcastHistoryTable();
  }
- 
+
  function renderBroadcastHistoryTable() {
    const statusFilter = document.getElementById('bcHistoryStatusFilter').value;
    const q = (document.getElementById('bcHistorySearchInput').value || '').trim().toLowerCase();
