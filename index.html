@@ -644,54 +644,45 @@
          <h2 style="margin: 0;">🌙 Balasan Khusus di Luar Jam Kerja</h2>
          <small style="color: #64748b;">Otomatis aktif saat toko tutup atau hari libur (Zona Waktu WITA)</small>
        </div>
-       <span id="offHoursLiveStatusPill" class="sync-pill">Nonaktif</span>
+       <span id="offHoursLiveStatusPill" class="sync-pill">🟢 Siaga (Saat Ini Jam Kerja)</span>
      </div>
 
-     <label style="display: flex; align-items: center; gap: 8px; background: #eef2ff; border: 1px solid #c7d2fe; padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-top: 0;">
-       <input type="checkbox" id="offHoursEnabledCheck" onchange="updateOffHoursLiveBadge()" />
-       <span><strong>Aktifkan Balasan Otomatis di Luar Jam Kerja</strong></span>
-     </label>
-
-     <div class="grid-3" style="margin-top: 6px;">
+     <div class="grid-3" style="margin-top: 0;">
        <div>
          <label for="offHoursStartInput">Jam Tutup / Mulai Luar Jam Kerja</label>
-         <input type="time" id="offHoursStartInput" value="18:00" onchange="updateOffHoursLiveBadge()" />
+         <input type="time" id="offHoursStartInput" value="18:00" oninput="markOffHoursDirty(); updateOffHoursLiveBadge();" onchange="markOffHoursDirty(); updateOffHoursLiveBadge();" />
        </div>
        <div>
          <label for="offHoursEndInput">Jam Buka / Selesai Luar Jam Kerja</label>
-         <input type="time" id="offHoursEndInput" value="08:00" onchange="updateOffHoursLiveBadge()" />
+         <input type="time" id="offHoursEndInput" value="08:00" oninput="markOffHoursDirty(); updateOffHoursLiveBadge();" onchange="markOffHoursDirty(); updateOffHoursLiveBadge();" />
        </div>
        <div>
          <label for="offHoursCooldownInput">Jeda Ulang per Nomor (Menit)</label>
-         <input type="number" id="offHoursCooldownInput" value="60" min="5" max="1440" />
+         <input type="number" id="offHoursCooldownInput" value="60" min="0" max="1440" oninput="markOffHoursDirty()" onchange="markOffHoursDirty()" />
        </div>
      </div>
 
      <label>Hari Libur Penuh (24 Jam di Luar Jam Kerja)</label>
      <div class="day-chip-group" id="offHoursDaysGroup">
-       <label class="day-chip"><input type="checkbox" value="0" checked onchange="updateOffHoursLiveBadge()" /> Minggu</label>
-       <label class="day-chip"><input type="checkbox" value="1" onchange="updateOffHoursLiveBadge()" /> Senin</label>
-       <label class="day-chip"><input type="checkbox" value="2" onchange="updateOffHoursLiveBadge()" /> Selasa</label>
-       <label class="day-chip"><input type="checkbox" value="3" onchange="updateOffHoursLiveBadge()" /> Rabu</label>
-       <label class="day-chip"><input type="checkbox" value="4" onchange="updateOffHoursLiveBadge()" /> Kamis</label>
-       <label class="day-chip"><input type="checkbox" value="5" onchange="updateOffHoursLiveBadge()" /> Jumat</label>
-       <label class="day-chip"><input type="checkbox" value="6" onchange="updateOffHoursLiveBadge()" /> Sabtu</label>
+       <label class="day-chip"><input type="checkbox" value="0" checked onchange="markOffHoursDirty(); updateOffHoursLiveBadge();" /> Minggu</label>
+       <label class="day-chip"><input type="checkbox" value="1" onchange="markOffHoursDirty(); updateOffHoursLiveBadge();" /> Senin</label>
+       <label class="day-chip"><input type="checkbox" value="2" onchange="markOffHoursDirty(); updateOffHoursLiveBadge();" /> Selasa</label>
+       <label class="day-chip"><input type="checkbox" value="3" onchange="markOffHoursDirty(); updateOffHoursLiveBadge();" /> Rabu</label>
+       <label class="day-chip"><input type="checkbox" value="4" onchange="markOffHoursDirty(); updateOffHoursLiveBadge();" /> Kamis</label>
+       <label class="day-chip"><input type="checkbox" value="5" onchange="markOffHoursDirty(); updateOffHoursLiveBadge();" /> Jumat</label>
+       <label class="day-chip"><input type="checkbox" value="6" onchange="markOffHoursDirty(); updateOffHoursLiveBadge();" /> Sabtu</label>
      </div>
 
      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 0.75rem;">
        <label for="offHoursReplyInput" style="margin: 0;">Keterangan Tambahan Saat Jam Tutup (Otomatis Disisipkan di Bawah Balasan)</label>
-       <button type="button" class="secondary sm" onclick="insertOffHoursSample()">✨ Contoh Template Muflih Print</button>
+       <button type="button" class="secondary sm" onclick="insertOffHoursSample()">✨ Isi Template Muflih Print</button>
      </div>
-     <textarea id="offHoursReplyInput" rows="4" placeholder="🌙 *Info Jam Tutup:*&#10;Saat ini *Muflih Print* sedang tutup (di luar jam operasional)..."></textarea>
-     <div class="var-hint">Balasan auto-reply tetap berjalan normal seperti jam buka, lalu teks di atas disisipkan otomatis di bagian bawah saat di luar jam operasional. Variabel: <code>{salam}</code>, <code>{nama}</code>, <code>{nomor}</code>, <code>{pesan}</code>.</div>
+     <textarea id="offHoursReplyInput" rows="4" oninput="markOffHoursDirty()" placeholder="Ketik keterangan tambahan saat jam tutup di sini..."></textarea>
+     <div class="var-hint">Auto-reply menu tetap berjalan normal dan baru dialihkan ke Antrean Admin saat pelanggan memilih Admin (angka 4 / chat langsung ke admin), lalu teks di atas disisipkan otomatis di bagian bawah saat di luar jam operasional. Variabel: <code>{salam}</code>, <code>{nama}</code>, <code>{nomor}</code>, <code>{pesan}</code>.</div>
 
-     <label style="display: flex; align-items: center; gap: 8px; background: #fff7ed; border: 1px solid #fed7aa; padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-top: 0.75rem;">
-       <input type="checkbox" id="offHoursPauseCheck" />
-       <span><strong>Otomatis Jeda Bot untuk Semua Chat Jam Tutup:</strong> Jika tidak dicentang, auto-reply menu tetap berjalan normal dan baru dialihkan ke Antrean Admin saat pelanggan memilih Admin (angka 4 / chat langsung ke admin)</span>
-     </label>
-
-     <div style="margin-top: 12px;">
+     <div style="margin-top: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
        <button type="button" id="btnSaveOffHours">💾 Simpan Pengaturan Luar Jam Kerja</button>
+       <small id="offHoursUnsavedHint" style="color: #d97706; font-weight: 600; display: none;">● Perubahan belum disimpan</small>
      </div>
    </div>
    <div class="card">
@@ -1891,13 +1882,40 @@ let activeHistoryBroadcastId = null;
    }
  }
 
- function populateOffHoursForm(data) {
-   document.getElementById('offHoursEnabledCheck').checked = Boolean(data.off_hours_enabled);
+ const DEFAULT_OFF_HOURS_SAMPLE =
+   '🌙 *Info Jam Tutup:*\n' +
+   'Saat ini *Muflih Print* sedang tutup (di luar jam operasional: Senin – Sabtu 08.00 – 18.00 WITA, Minggu Libur).\n\n' +
+   'Chat langsung ke Admin tetap kami terima dan akan segera dibalas oleh Admin pada *jam buka* atau saat *Admin sedang online*. 🙏';
+
+ let isOffHoursDirty = false;
+
+ function markOffHoursDirty() {
+   isOffHoursDirty = true;
+   const hint = document.getElementById('offHoursUnsavedHint');
+   if (hint) hint.style.display = 'inline';
+ }
+
+ function clearOffHoursDirty() {
+   isOffHoursDirty = false;
+   const hint = document.getElementById('offHoursUnsavedHint');
+   if (hint) hint.style.display = 'none';
+ }
+
+ function populateOffHoursForm(data, force = false) {
+   if (isOffHoursDirty && !force) {
+     updateOffHoursLiveBadge();
+     return;
+   }
+
    document.getElementById('offHoursStartInput').value = data.off_hours_start || '18:00';
    document.getElementById('offHoursEndInput').value = data.off_hours_end || '08:00';
    document.getElementById('offHoursCooldownInput').value = data.off_hours_cooldown_min ?? 60;
-   document.getElementById('offHoursReplyInput').value = data.off_hours_reply || '';
-   document.getElementById('offHoursPauseCheck').checked = Boolean(data.off_hours_pause_bot);
+
+   const replyEl = document.getElementById('offHoursReplyInput');
+   if (document.activeElement !== replyEl) {
+     const hasSavedReply = typeof data.off_hours_reply === 'string' && data.off_hours_reply.trim() !== '';
+     replyEl.value = hasSavedReply ? data.off_hours_reply : DEFAULT_OFF_HOURS_SAMPLE;
+   }
 
    const selectedDays = String(data.off_hours_days ?? '0')
      .split(',')
@@ -1914,15 +1932,6 @@ let activeHistoryBroadcastId = null;
  function updateOffHoursLiveBadge() {
    const pill = document.getElementById('offHoursLiveStatusPill');
    if (!pill) return;
-
-   const enabled = document.getElementById('offHoursEnabledCheck').checked;
-   if (!enabled) {
-     pill.classList.remove('ok');
-     pill.style.background = '#f1f5f9';
-     pill.style.color = '#475569';
-     pill.textContent = 'Nonaktif';
-     return;
-   }
 
    const parts = new Intl.DateTimeFormat('en-US', {
      timeZone: 'Asia/Makassar',
@@ -1965,49 +1974,60 @@ let activeHistoryBroadcastId = null;
  }
 
  function insertOffHoursSample() {
-   document.getElementById('offHoursReplyInput').value =
-     '🌙 *Info Jam Tutup:*\n' +
-     'Saat ini *Muflih Print* sedang tutup (di luar jam operasional: Senin – Sabtu 08.00 – 18.00 WITA, Minggu Libur).\n\n' +
-     'Chat langsung ke Admin tetap kami terima dan akan segera dibalas oleh Admin pada *jam buka* atau saat *Admin sedang online*. 🙏';
+   const replyEl = document.getElementById('offHoursReplyInput');
+   replyEl.value = DEFAULT_OFF_HOURS_SAMPLE;
+   replyEl.focus();
+   markOffHoursDirty();
  }
 
  document.getElementById('btnSaveOffHours').addEventListener('click', async () => {
    const btn = document.getElementById('btnSaveOffHours');
-   const off_hours_enabled = document.getElementById('offHoursEnabledCheck').checked;
    const off_hours_start = document.getElementById('offHoursStartInput').value || '18:00';
    const off_hours_end = document.getElementById('offHoursEndInput').value || '08:00';
    const off_hours_cooldown_min = Math.max(0, Number(document.getElementById('offHoursCooldownInput').value ?? 60));
-   const off_hours_mode = 'append';
-   let off_hours_reply = document.getElementById('offHoursReplyInput').value.trim();
-   const off_hours_pause_bot = document.getElementById('offHoursPauseCheck').checked;
+   const off_hours_reply = document.getElementById('offHoursReplyInput').value.trim();
    const off_hours_days = Array.from(document.querySelectorAll('#offHoursDaysGroup input:checked'))
      .map(cb => cb.value)
      .join(',');
 
-   if (off_hours_enabled && !off_hours_reply) {
-     insertOffHoursSample();
-     off_hours_reply = document.getElementById('offHoursReplyInput').value.trim();
-   }
-
    btn.disabled = true;
    btn.textContent = '⏳ Menyimpan...';
    try {
-     const { error } = await db
+     const fullPayload = {
+       off_hours_enabled: true,
+       off_hours_start,
+       off_hours_end,
+       off_hours_days,
+       off_hours_mode: 'append',
+       off_hours_reply,
+       off_hours_pause_bot: false,
+       off_hours_cooldown_min,
+       updated_at: new Date().toISOString()
+     };
+
+     let { error } = await db
        .from('wa_bot_config')
-       .update({
-         off_hours_enabled,
+       .update(fullPayload)
+       .eq('id', BOT_ID);
+
+     if (error && /column|schema cache/i.test(error.message || '')) {
+       const fallbackPayload = {
          off_hours_start,
          off_hours_end,
          off_hours_days,
-         off_hours_mode,
          off_hours_reply,
-         off_hours_pause_bot,
          off_hours_cooldown_min,
          updated_at: new Date().toISOString()
-       })
-       .eq('id', BOT_ID);
+       };
+       const retryRes = await db
+         .from('wa_bot_config')
+         .update(fallbackPayload)
+         .eq('id', BOT_ID);
+       error = retryRes.error;
+     }
 
      if (error) return alert('Gagal menyimpan pengaturan: ' + error.message);
+     clearOffHoursDirty();
      updateOffHoursLiveBadge();
      btn.textContent = '✓ Tersimpan';
      setTimeout(() => { btn.textContent = '💾 Simpan Pengaturan Luar Jam Kerja'; }, 1800);
