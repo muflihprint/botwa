@@ -1303,7 +1303,7 @@
    loadBroadcasts();
  }
 
- // --- Sinkronisasi & Chat View ---
+ // --- Sinkronisasi & Chat View (Hemat Disk IO: 300 baris & kolom spesifik) ---
  async function triggerChatSync() {
    const pill = document.getElementById('syncStatusPill');
    if (pill) {
@@ -1344,9 +1344,9 @@
  async function loadLogs() {
    const { data } = await db
      .from('wa_logs')
-     .select('*')
+     .select('id, sender_name, sender_number, incoming, reply, handed_over, log_type, incoming_at, created_at')
      .order('created_at', { ascending: false })
-     .limit(1200);
+     .limit(300);
 
    rawLogsCache = (data || []).reverse();
    renderGroupedWhatsAppView();
@@ -1693,10 +1693,10 @@
 
    const { data: logs, error } = await db
      .from('wa_logs')
-     .select('id, sender_name, sender_number, incoming, reply, handed_over, log_type, incoming_at, created_at')
+     .select('id, sender_number, handed_over, log_type, incoming_at, created_at')
      .gte('created_at', fetchFromIso)
      .order('created_at', { ascending: true })
-     .limit(5000);
+     .limit(3000);
 
    if (error || !logs) return;
 
@@ -2372,12 +2372,11 @@
    }
  }
 
- function scheduleLogsRefresh(includeReports = true) {
+ function scheduleLogsRefresh() {
    clearTimeout(logsRefreshTimer);
    logsRefreshTimer = setTimeout(() => {
      safeLoadLogs();
-     if (includeReports) loadReports();
-   }, 350);
+   }, 1000);
  }
 
  loadBotConfig();
@@ -2394,18 +2393,18 @@
      loadBotConfig();
      if (payload.new?.last_synced_at && payload.new.last_synced_at !== payload.old?.last_synced_at) {
        loadContacts();
-       scheduleLogsRefresh(true);
+       scheduleLogsRefresh();
      }
    })
    .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_rules' }, loadRules)
    .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_admin_queue' }, () => {
      loadAdminQueue();
-     scheduleLogsRefresh(false);
+     scheduleLogsRefresh();
    })
    .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_contacts' }, loadContacts)
    .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_broadcasts' }, loadBroadcasts)
    .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_logs' }, () => {
-     scheduleLogsRefresh(true);
+     scheduleLogsRefresh();
    })
    .subscribe((status) => {
      const pill = document.getElementById('syncStatusPill');
@@ -2438,7 +2437,7 @@
      safeLoadLogs();
      loadAdminQueue();
    }
- }, 8000);
+ }, 30000);
 </script>
 </body>
 </html>
