@@ -680,8 +680,8 @@
 
      <label for="offHoursModeSelect">Mode Balasan Saat di Luar Jam Kerja</label>
      <select id="offHoursModeSelect">
-       <option value="replace" selected>Gantikan balasan biasa dengan pesan khusus di luar jam kerja</option>
-       <option value="append">Tetap balas kata kunci normal + sisipkan info luar jam kerja di bawahnya</option>
+       <option value="append" selected>Tetap balas seperti jam buka + tambahkan info jam tutup di bawahnya (Direkomendasikan)</option>
+       <option value="replace">Gantikan balasan biasa dengan pesan khusus di luar jam kerja saja</option>
      </select>
 
      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 0.75rem;">
@@ -692,8 +692,8 @@
      <div class="var-hint">Variabel: <code>{salam}</code>, <code>{nama}</code>, <code>{nomor}</code>, <code>{pesan}</code>.</div>
 
      <label style="display: flex; align-items: center; gap: 8px; background: #fff7ed; border: 1px solid #fed7aa; padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-top: 0.75rem;">
-       <input type="checkbox" id="offHoursPauseCheck" checked />
-       <span><strong>Masukkan ke Antrean Admin:</strong> Tandai chat agar admin membalas saat toko buka</span>
+       <input type="checkbox" id="offHoursPauseCheck" />
+       <span><strong>Otomatis Jeda Bot untuk Semua Chat Jam Tutup:</strong> Jika tidak dicentang, auto-reply menu tetap berjalan normal dan baru dialihkan ke Antrean Admin saat pelanggan memilih Admin (angka 4 / chat langsung ke admin)</span>
      </label>
 
      <div style="margin-top: 12px;">
@@ -1901,10 +1901,10 @@ let activeHistoryBroadcastId = null;
    document.getElementById('offHoursEnabledCheck').checked = Boolean(data.off_hours_enabled);
    document.getElementById('offHoursStartInput').value = data.off_hours_start || '18:00';
    document.getElementById('offHoursEndInput').value = data.off_hours_end || '08:00';
-   document.getElementById('offHoursCooldownInput').value = data.off_hours_cooldown_min || 60;
-   document.getElementById('offHoursModeSelect').value = data.off_hours_mode || 'replace';
+   document.getElementById('offHoursCooldownInput').value = data.off_hours_cooldown_min ?? 60;
+   document.getElementById('offHoursModeSelect').value = data.off_hours_mode || 'append';
    document.getElementById('offHoursReplyInput').value = data.off_hours_reply || '';
-   document.getElementById('offHoursPauseCheck').checked = data.off_hours_pause_bot !== false;
+   document.getElementById('offHoursPauseCheck').checked = Boolean(data.off_hours_pause_bot);
 
    const selectedDays = String(data.off_hours_days ?? '0')
      .split(',')
@@ -1973,12 +1973,9 @@ let activeHistoryBroadcastId = null;
 
  function insertOffHoursSample() {
    document.getElementById('offHoursReplyInput').value =
-     '{salam} Kak *{nama}* 🙏\n\n' +
-     'Terima kasih telah menghubungi *Muflih Print Makassar*. Saat ini toko kami sedang tutup (di luar jam operasional).\n\n' +
-     '🕒 *Jam Operasional:*\n' +
-     'Senin – Sabtu: 08.00 – 18.00 WITA (Minggu Libur)\n\n' +
-     'Pesan Kakak sudah kami catat dan akan segera dibalas oleh Admin saat toko buka kembali. Untuk pemesanan mandiri 24 jam, silakan cek katalog & hitung harga otomatis di:\n' +
-     '👉 https://muflihprint.vercel.app 😊';
+     '🌙 *Info Jam Tutup:*\n' +
+     'Saat ini *Muflih Print* sedang tutup (di luar jam operasional: Senin – Sabtu 08.00 – 18.00 WITA, Minggu Libur).\n\n' +
+     'Chat langsung ke Admin tetap kami terima dan akan segera dibalas oleh Admin pada *jam buka* atau saat *Admin sedang online*. 🙏';
  }
 
  document.getElementById('btnSaveOffHours').addEventListener('click', async () => {
@@ -1986,16 +1983,17 @@ let activeHistoryBroadcastId = null;
    const off_hours_enabled = document.getElementById('offHoursEnabledCheck').checked;
    const off_hours_start = document.getElementById('offHoursStartInput').value || '18:00';
    const off_hours_end = document.getElementById('offHoursEndInput').value || '08:00';
-   const off_hours_cooldown_min = Math.max(5, Number(document.getElementById('offHoursCooldownInput').value || 60));
+   const off_hours_cooldown_min = Math.max(0, Number(document.getElementById('offHoursCooldownInput').value ?? 60));
    const off_hours_mode = document.getElementById('offHoursModeSelect').value;
-   const off_hours_reply = document.getElementById('offHoursReplyInput').value.trim();
+   let off_hours_reply = document.getElementById('offHoursReplyInput').value.trim();
    const off_hours_pause_bot = document.getElementById('offHoursPauseCheck').checked;
    const off_hours_days = Array.from(document.querySelectorAll('#offHoursDaysGroup input:checked'))
      .map(cb => cb.value)
      .join(',');
 
    if (off_hours_enabled && !off_hours_reply) {
-     return alert('Isi format pesan balasan di luar jam kerja terlebih dahulu.');
+     insertOffHoursSample();
+     off_hours_reply = document.getElementById('offHoursReplyInput').value.trim();
    }
 
    btn.disabled = true;
