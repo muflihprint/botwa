@@ -6,8 +6,9 @@
 <title>WhatsApp Auto-Reply & Broadcast Dashboard — Muflih Print</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
- body { font-family: system-ui, -apple-system, sans-serif; max-width: 920px; margin: 1.25rem auto; padding: 0 1rem; background: #f8fafc; color: #0f172a; }
- .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+ body { font-family: system-ui, -apple-system, sans-serif; max-width: 1080px; margin: 1.25rem auto; padding: 0 1rem; background: #f8fafc; color: #0f172a; }
+ .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: border-color 0.25s ease, box-shadow 0.25s ease; }
+ .card.editing-highlight { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16); }
  .hidden { display: none !important; }
  #qrImage { width: 230px; height: 230px; border: 1px solid #cbd5e1; padding: 8px; border-radius: 10px; }
  .header-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 1rem; margin-bottom: 1rem; }
@@ -103,8 +104,6 @@
    .tab-nav { grid-template-columns: repeat(2, 1fr); top: 6px; }
    .tab-btn { font-size: 0.84rem; padding: 9px 8px; }
  }
-
- body { font-family: system-ui, -apple-system, sans-serif; max-width: 1080px; margin: 1.25rem auto; padding: 0 1rem; background: #f8fafc; color: #0f172a; }
 
  /* Broadcast Panel (Split Kiri: Daftar Broadcast, Kanan: Riwayat Penerima) */
  .bc-safety-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px; margin-top: 10px; }
@@ -244,6 +243,8 @@
    padding: 10px 12px;
    border-bottom: 1px solid #f1f5f9;
    cursor: pointer;
+   user-select: none;
+   -webkit-tap-highlight-color: transparent;
    transition: background 0.15s ease;
  }
  .wa-contact-item:hover { background: #f8fafc; }
@@ -408,7 +409,7 @@
  </div>
 
  <!-- Navigasi 4 Tab Halaman (Tetap terlihat saat di-scroll) -->
- <nav class="tab-nav" role="tablist">
+ <nav class="tab-nav" id="mainTabNav" role="tablist">
    <button type="button" class="tab-btn active" data-tab="tab-chat" onclick="switchTab('tab-chat')">
      <span>💬 Chat & Antrean</span>
      <span id="tabChatBadge" class="tab-badge hidden">0</span>
@@ -685,7 +686,9 @@
        <small id="offHoursUnsavedHint" style="color: #d97706; font-weight: 600; display: none;">● Perubahan belum disimpan</small>
      </div>
    </div>
-   <div class="card">
+
+   <!-- Kartu 2: Form Tambah / Edit Aturan Auto-Reply -->
+   <div id="ruleFormCard" class="card">
      <div class="header-bar">
        <div>
          <h2 style="margin: 0;">🤖 Aturan Auto-Reply WhatsApp</h2>
@@ -844,8 +847,10 @@
  let editingRuleId = null;
  let cachedReportMetrics = null;
  let rawLogsCache = [];
+ let groupedThreadsCache = [];
  let contactsCache = [];
  let selectedChatNumber = null;
+ let lastRenderedContactListHtml = '';
  let lastRenderedChatKey = null;
  let lastRenderedChatHtml = '';
  let syncTimeoutTimer = null;
@@ -1100,7 +1105,7 @@
    }
  });
 
-let activeHistoryBroadcastId = null;
+ let activeHistoryBroadcastId = null;
  let bcHistoryRowsCache = [];
  let bcCampaignsCache = [];
 
@@ -1380,7 +1385,7 @@ let activeHistoryBroadcastId = null;
    const map = new Map();
 
    for (const log of rawLogsCache) {
-     const numKey = log.sender_number || log.sender_name || 'Tanpa Nomor';
+     const numKey = String(log.sender_number || log.sender_name || 'Tanpa Nomor');
      if (!map.has(numKey)) {
        map.set(numKey, {
          number: numKey,
@@ -1463,12 +1468,25 @@ let activeHistoryBroadcastId = null;
    return threads;
  }
 
+ function updateActiveContactItemClass() {
+   const contactListEl = document.getElementById('waContactList');
+   if (!contactListEl) return;
+   contactListEl.querySelectorAll('.wa-contact-item').forEach(el => {
+     el.classList.toggle('active', el.dataset.threadNumber === selectedChatNumber);
+   });
+ }
+
  function renderGroupedWhatsAppView() {
    const threads = buildGroupedThreads();
+   groupedThreadsCache = threads;
    const contactListEl = document.getElementById('waContactList');
 
    if (threads.length === 0) {
-     contactListEl.innerHTML = '<div style="padding: 16px; color: #64748b; font-size: 0.85rem;">Tidak ada percakapan ditemukan.</div>';
+     const emptyHtml = '<div style="padding: 16px; color: #64748b; font-size: 0.85rem;">Tidak ada percakapan ditemukan.</div>';
+     if (lastRenderedContactListHtml !== emptyHtml) {
+       contactListEl.innerHTML = emptyHtml;
+       lastRenderedContactListHtml = emptyHtml;
+     }
      renderActiveThread(null);
      return;
    }
@@ -1477,8 +1495,8 @@ let activeHistoryBroadcastId = null;
      selectedChatNumber = threads[0].number;
    }
 
-   contactListEl.innerHTML = threads.map(t => {
-     const isActive = t.number === selectedChatNumber;
+   // Render daftar kontak tanpa kelas .active di string HTML agar tidak perlu re-render ulang saat user mengklik kontak
+   const newListHtml = threads.map(t => {
      const av = getAvatarStyle(t.name);
      const dateKey = toWitaDateKey(t.lastTimestampMs);
      const timeLabel = dateKey === getShiftDateKey(0)
@@ -1487,7 +1505,7 @@ let activeHistoryBroadcastId = null;
      const showSubNumber = t.name !== t.number;
 
      return `
-       <div class="wa-contact-item ${isActive ? 'active' : ''}" onclick="selectChatThread('${escapeHtml(t.number).replace(/'/g, "\\'")}')">
+       <div class="wa-contact-item" data-thread-number="${escapeHtml(t.number)}">
          <div class="wa-avatar" style="background: ${av.bg};">${escapeHtml(av.initials)}</div>
          <div class="wa-contact-meta">
            <div class="wa-contact-top">
@@ -1504,9 +1522,54 @@ let activeHistoryBroadcastId = null;
      `;
    }).join('');
 
+   if (newListHtml !== lastRenderedContactListHtml) {
+     const prevListScroll = contactListEl.scrollTop;
+     contactListEl.innerHTML = newListHtml;
+     contactListEl.scrollTop = prevListScroll;
+     lastRenderedContactListHtml = newListHtml;
+   }
+
+   updateActiveContactItemClass();
+
    const activeThread = threads.find(t => t.number === selectedChatNumber) || null;
    renderActiveThread(activeThread);
  }
+
+ // Event Delegation langsung pada kontainer daftar kontak agar klik selalu responsif dan tidak pernah gagal akibat re-render DOM
+ (function bindContactListDelegation() {
+   const contactListEl = document.getElementById('waContactList');
+   let pointerDownY = 0;
+   let pointerDownNumber = null;
+
+   contactListEl.addEventListener('pointerdown', (e) => {
+     const item = e.target.closest('.wa-contact-item');
+     if (!item) {
+       pointerDownNumber = null;
+       return;
+     }
+     pointerDownY = e.clientY;
+     pointerDownNumber = item.dataset.threadNumber || null;
+   });
+
+   contactListEl.addEventListener('pointerup', (e) => {
+     if (!pointerDownNumber) return;
+     const movedY = Math.abs(e.clientY - pointerDownY);
+     const targetNum = pointerDownNumber;
+     pointerDownNumber = null;
+     if (movedY < 10) {
+       selectChatThread(targetNum);
+     }
+   });
+
+   contactListEl.addEventListener('click', (e) => {
+     const item = e.target.closest('.wa-contact-item');
+     if (!item) return;
+     const targetNum = item.dataset.threadNumber;
+     if (targetNum && targetNum !== selectedChatNumber) {
+       selectChatThread(targetNum);
+     }
+   });
+ })();
 
  function scrollChatToBottom() {
    const msgBox = document.getElementById('waMessagesContainer');
@@ -1526,7 +1589,14 @@ let activeHistoryBroadcastId = null;
    selectedChatNumber = numberKey;
    lastRenderedChatKey = null;
    document.getElementById('waShell').classList.add('mobile-thread-open');
-   renderGroupedWhatsAppView();
+   updateActiveContactItemClass();
+
+   const activeThread = groupedThreadsCache.find(t => t.number === numberKey) || null;
+   if (activeThread) {
+     renderActiveThread(activeThread);
+   } else {
+     renderGroupedWhatsAppView();
+   }
  }
 
  function closeMobileChat() {
@@ -1534,7 +1604,8 @@ let activeHistoryBroadcastId = null;
    lastRenderedChatKey = null;
    lastRenderedChatHtml = '';
    document.getElementById('waShell').classList.remove('mobile-thread-open');
-   renderGroupedWhatsAppView();
+   updateActiveContactItemClass();
+   renderActiveThread(null);
  }
 
  function renderActiveThread(thread) {
@@ -2183,6 +2254,8 @@ let activeHistoryBroadcastId = null;
 
  function resetForm() {
    editingRuleId = null;
+   const formCard = document.getElementById('ruleFormCard');
+   if (formCard) formCard.classList.remove('editing-highlight');
    document.getElementById('formTitle').textContent = 'Tambah Format Balasan Baru';
    document.getElementById('isDefaultCheck').checked = false;
    document.getElementById('pauseBotCheck').checked = false;
@@ -2245,8 +2318,13 @@ let activeHistoryBroadcastId = null;
    const r = currentRules.find(item => item.id === id);
    if (!r) return;
 
-   switchTab('tab-autoreply', true);
+   // Jangan scroll ke top:0 karena form berada di bawah kartu Luar Jam Kerja
+   switchTab('tab-autoreply', false);
    editingRuleId = id;
+
+   const formCard = document.getElementById('ruleFormCard');
+   const replyEl = document.getElementById('replyInput');
+
    document.getElementById('formTitle').textContent = 'Edit Aturan Balasan';
    document.getElementById('isDefaultCheck').checked = r.is_default;
    document.getElementById('pauseBotCheck').checked = r.pause_bot;
@@ -2263,9 +2341,30 @@ let activeHistoryBroadcastId = null;
 
    document.getElementById('exactKeywordInput').value = r.exact_keywords || '';
    document.getElementById('containsKeywordInput').value = r.contains_keywords || '';
-   document.getElementById('replyInput').value = r.reply;
+   replyEl.value = r.reply;
    document.getElementById('btnAddRule').textContent = 'Simpan Perubahan';
    document.getElementById('btnCancelEdit').classList.remove('hidden');
+
+   // Tunggu layout selesai di-update lalu scroll tepat ke area edit & fokus ke kolom pesan
+   requestAnimationFrame(() => {
+     const navEl = document.getElementById('mainTabNav');
+     const navHeight = navEl ? navEl.offsetHeight + 20 : 80;
+     const targetEl = formCard || replyEl;
+     const targetTop = targetEl.getBoundingClientRect().top + window.scrollY - navHeight;
+
+     window.scrollTo({
+       top: Math.max(0, targetTop),
+       behavior: 'smooth'
+     });
+
+     if (formCard) {
+       formCard.classList.add('editing-highlight');
+     }
+
+     replyEl.focus({ preventScroll: true });
+     const textLen = replyEl.value.length;
+     replyEl.setSelectionRange(textLen, textLen);
+   });
  }
 
  async function deleteRule(id) {
@@ -2286,7 +2385,7 @@ let activeHistoryBroadcastId = null;
    if (savedTab) switchTab(savedTab, false);
  } catch (_) {}
 
-// Inisialisasi awal & Supabase Realtime (dengan Auto-Reconnect & Fallback)
+ // Inisialisasi awal & Supabase Realtime (dengan Auto-Reconnect & Fallback)
  let isFetchingLogs = false;
  let logsRefreshTimer = null;
 
