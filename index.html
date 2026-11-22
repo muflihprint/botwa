@@ -89,6 +89,22 @@
    .tab-btn { font-size: 0.84rem; padding: 9px 8px; }
  }
 
+ .ai-mode-info {
+   margin-top: 10px;
+   padding: 10px 12px;
+   border-radius: 8px;
+   font-size: 0.84rem;
+   line-height: 1.45;
+   border: 1px solid #ddd6fe;
+   background: #faf5ff;
+   color: #4c1d95;
+ }
+ .ai-mode-info.off {
+   border-color: #e2e8f0;
+   background: #f8fafc;
+   color: #334155;
+ }
+
  .bc-safety-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px; margin-top: 10px; }
  .bc-preview-box { background: #fefce8; border: 1px dashed #eab308; border-radius: 8px; padding: 10px 12px; margin-top: 8px; font-size: 0.84rem; color: #1e293b; white-space: pre-wrap; }
  .bc-split-shell { display: grid; grid-template-columns: 320px 1fr; gap: 14px; align-items: start; }
@@ -446,25 +462,25 @@
    <div class="card" style="border-color: #c4b5fd;">
      <div class="header-bar" style="margin-bottom: 0.75rem;">
        <div>
-         <h2 style="margin: 0;">🧠 Balasan Cerdas AI (Google Gemini)</h2>
-         <small style="color: #64748b;">Memahami pertanyaan bebas pelanggan & membaca riwayat percakapan terakhir</small>
+         <h2 style="margin: 0;">🧠 Opsi Balasan AI (Google Gemini)</h2>
+         <small style="color: #64748b;">Pilih apakah auto-reply dijawab oleh AI atau aturan kata kunci manual</small>
        </div>
-       <span id="aiLiveStatusPill" class="sync-pill">⚪ AI Nonaktif</span>
+       <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+         <span id="aiRulesRefCountPill" class="sync-pill">📚 0 Aturan Auto-Reply</span>
+         <span id="aiLiveStatusPill" class="sync-pill">⚪ AI Nonaktif</span>
+       </div>
      </div>
 
-     <label style="display: flex; align-items: center; gap: 8px; background: #f5f3ff; border: 1px solid #ddd6fe; padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-top: 0;">
+     <label style="display: flex; align-items: center; gap: 8px; background: #f5f3ff; border: 1px solid #ddd6fe; padding: 11px 12px; border-radius: 8px; cursor: pointer; margin-top: 0;">
        <input type="checkbox" id="aiEnabledCheck" onchange="markAiFormDirty(); updateAiLiveBadge();" />
-       <span><strong>Aktifkan Balasan AI Google Gemini</strong> (API Key terpasang di Worker)</span>
+       <span><strong>Aktifkan AI pada Auto-Reply</strong> (Jika aktif, balasan chat hanya dari AI mengacu pada pesan auto-reply yang sudah dibuat)</span>
      </label>
 
-     <div class="kw-grid">
-       <div>
-         <label for="aiModeSelect">Mode Prioritas Balasan AI</label>
-         <select id="aiModeSelect" onchange="markAiFormDirty()">
-           <option value="fallback" selected>Hybrid (Kata Kunci/Menu dulu, sisanya dijawab AI)</option>
-           <option value="primary">AI Utama (Semua chat langsung dijawab AI)</option>
-         </select>
-       </div>
+     <div id="aiModeDescriptionBox" class="ai-mode-info off">
+       <strong>Mode Saat Ini — AI Nonaktif:</strong> Balasan otomatis dikirim menggunakan pencocokan kata kunci &amp; balasan default pada daftar aturan di bawah tanpa AI.
+     </div>
+
+     <div id="aiConfigFieldsBox" class="hidden" style="margin-top: 10px;">
        <div>
          <label for="aiModelSelect">Model Google Gemini</label>
          <select id="aiModelSelect" onchange="markAiFormDirty()">
@@ -472,15 +488,15 @@
            <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite (Super Ringan & Hemat)</option>
          </select>
        </div>
-     </div>
 
-     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 0.75rem;">
-       <label for="aiSystemPromptInput" style="margin: 0;">Knowledge Base Toko & Instruksi Perilaku AI</label>
-       <button type="button" class="secondary sm" onclick="insertAiPromptSample()">✨ Isi Template Muflih Print</button>
-     </div>
-     <textarea id="aiSystemPromptInput" rows="7" oninput="markAiFormDirty()" placeholder="Tuliskan informasi layanan, harga cetak, jam buka, alamat, dan aturan alihkan ke admin..."></textarea>
-     <div class="var-hint">
-       Tip: Pertahankan instruksi kode <code>[ALIHKAN_ADMIN]</code> agar AI otomatis memasukkan chat ke <strong>Antrean Admin</strong> (jeda bot 60 menit) saat pelanggan mengirim file cetak, meminta harga custom, atau butuh bantuan admin.
+       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 0.75rem;">
+         <label for="aiSystemPromptInput" style="margin: 0;">Instruksi Tambahan & Gaya Bahasa AI (Opsional)</label>
+         <button type="button" class="secondary sm" onclick="insertAiPromptSample()">✨ Isi Contoh Gaya Bahasa</button>
+       </div>
+       <textarea id="aiSystemPromptInput" rows="5" oninput="markAiFormDirty()" placeholder="Tuliskan gaya bahasa atau catatan tambahan untuk AI (AI otomatis membaca seluruh Daftar Format Balasan Aktif di bawah)..."></textarea>
+       <div class="var-hint">
+         AI otomatis membaca seluruh <strong>Daftar Format Balasan Aktif</strong> di bawah sebagai referensi jawaban utama. Pertahankan kode <code>[ALIHKAN_ADMIN]</code> agar AI otomatis mengalihkan chat ke <strong>Antrean Admin</strong> (jeda bot 60 menit) saat dibutuhkan.
+       </div>
      </div>
 
      <div style="margin-top: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
@@ -529,7 +545,7 @@
        <button type="button" class="secondary sm" onclick="insertOffHoursSample()">✨ Isi Template Muflih Print</button>
      </div>
      <textarea id="offHoursReplyInput" rows="4" oninput="markOffHoursDirty()" placeholder="Ketik keterangan tambahan saat jam tutup di sini..."></textarea>
-     <div class="var-hint">Auto-reply menu maupun AI tetap berjalan normal dan keterangan di atas disisipkan otomatis di bagian bawah saat di luar jam operasional. Variabel: <code>{salam}</code>, <code>{nama}</code>, <code>{nomor}</code>, <code>{pesan}</code>.</div>
+     <div class="var-hint">Auto-reply maupun AI tetap berjalan normal dan keterangan di atas disisipkan otomatis di bagian bawah saat di luar jam operasional. Variabel: <code>{salam}</code>, <code>{nama}</code>, <code>{nomor}</code>, <code>{pesan}</code>.</div>
 
      <div style="margin-top: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
        <button type="button" id="btnSaveOffHours">💾 Simpan Pengaturan Luar Jam Kerja</button>
@@ -540,8 +556,8 @@
    <div id="ruleFormCard" class="card">
      <div class="header-bar">
        <div>
-         <h2 style="margin: 0;">🤖 Aturan Auto-Reply Kata Kunci</h2>
-         <small style="color: #64748b;">Sinkronisasi real-time antar perangkat</small>
+         <h2 style="margin: 0;">🤖 Aturan & Referensi Pesan Auto-Reply</h2>
+         <small style="color: #64748b;">Digunakan langsung saat AI nonaktif, atau dijadikan referensi utama jawaban saat AI aktif</small>
        </div>
      </div>
 
@@ -549,7 +565,7 @@
 
      <label style="display: flex; align-items: center; gap: 8px; background: #fffbeb; border: 1px solid #fde68a; padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-top: 0.5rem;">
        <input type="checkbox" id="isDefaultCheck" />
-       <span>Jadikan sebagai <strong>Balasan Default</strong> (cadangan jika AI nonaktif dan tidak ada kata kunci cocok)</span>
+       <span>Jadikan sebagai <strong>Balasan Default / Info Umum</strong> (cadangan jika AI nonaktif, atau menjadi informasi umum utama saat AI aktif)</span>
      </label>
 
      <div id="keywordFieldsGrid" class="kw-grid">
@@ -810,17 +826,9 @@
 
  // --- Pengaturan AI (Google Gemini) ---
  const DEFAULT_AI_PROMPT_SAMPLE =
-   'Kamu adalah asisten virtual resmi dari *Muflih Print Makassar* (percetakan & desain grafis di Makassar).\n' +
-   'Jawablah chat pelanggan dengan ramah, sopan, singkat, jelas, dan menggunakan format WhatsApp (*tebal* untuk poin penting).\n\n' +
-   'INFORMASI LAYANAN & TOKO:\n' +
-   '- Lokasi: Barawaja, Makassar.\n' +
-   '- Jam Operasional: Senin – Sabtu pukul 08.00 – 18.00 WITA (Minggu Libur).\n' +
-   '- Layanan Utama: Cetak Undangan Fisik, Undangan Web Digital, Cetak Dokumen PDF (HVS A4 & F4), Stiker, Brosur, dan paket cetak custom.\n' +
-   '- Pemesanan Online (bisa COD & hitung halaman PDF otomatis): https://muflihprint.vercel.app\n\n' +
-   'ATURAN WAJIB:\n' +
-   '1. Jangan mengarang harga, promo, atau estimasi selesai yang tidak tercantum di atas.\n' +
-   '2. Jika pelanggan menanyakan harga pasti pesanan custom, mengirim file/gambar untuk dicetak, meminta revisi desain, komplain, atau ingin bicara dengan admin, jawab dengan sopan bahwa pesan diteruskan ke Admin dan WAJIB tambahkan kode [ALIHKAN_ADMIN] di paling akhir balasan.\n' +
-   '3. Gunakan sapaan "Kak" dan sesuaikan dengan nama pelanggan jika tersedia.';
+   'Gunakan gaya bahasa yang ramah, sopan, singkat, dan jelas dengan sapaan "Kak".\n' +
+   'Jawablah berdasarkan daftar pesan auto-reply yang tersedia. Jangan mengarang harga atau estimasi pengerjaan yang tidak tercantum.\n' +
+   'Jika pelanggan mengirim file untuk dicetak, meminta harga khusus/custom, revisi desain, komplain, atau ingin berbicara langsung dengan admin, sampaikan dengan sopan bahwa chat diteruskan ke Admin dan akhiri balasan dengan kode [ALIHKAN_ADMIN].';
 
  let isAiFormDirty = false;
 
@@ -838,12 +846,30 @@
 
  function updateAiLiveBadge() {
    const pill = document.getElementById('aiLiveStatusPill');
+   const descBox = document.getElementById('aiModeDescriptionBox');
+   const configFieldsBox = document.getElementById('aiConfigFieldsBox');
    const isEnabled = document.getElementById('aiEnabledCheck').checked;
-   if (!pill) return;
 
+   if (configFieldsBox) {
+     configFieldsBox.classList.toggle('hidden', !isEnabled);
+   }
+
+   if (descBox) {
+     if (isEnabled) {
+       descBox.classList.remove('off');
+       descBox.innerHTML =
+         '<strong>Mode Saat Ini — AI Aktif:</strong> Semua balasan chat <strong>hanya berasal dari AI</strong> dengan mengacu pada daftar pesan Auto-Reply yang sudah Anda buat di bawah.';
+     } else {
+       descBox.classList.add('off');
+       descBox.innerHTML =
+         '<strong>Mode Saat Ini — AI Nonaktif:</strong> Balasan otomatis dikirim menggunakan pencocokan kata kunci &amp; balasan default pada daftar aturan di bawah tanpa AI.';
+     }
+   }
+
+   if (!pill) return;
    if (isEnabled) {
      pill.classList.add('ai');
-     pill.textContent = '🧠 AI Aktif Siaga';
+     pill.textContent = '🧠 AI Aktif (Hanya AI)';
    } else {
      pill.classList.remove('ai');
      pill.textContent = '⚪ AI Nonaktif';
@@ -857,7 +883,6 @@
    }
 
    document.getElementById('aiEnabledCheck').checked = Boolean(data.ai_enabled);
-   if (data.ai_mode) document.getElementById('aiModeSelect').value = data.ai_mode;
    if (data.ai_model) document.getElementById('aiModelSelect').value = data.ai_model;
 
    const promptEl = document.getElementById('aiSystemPromptInput');
@@ -879,7 +904,7 @@
  document.getElementById('btnSaveAiConfig').addEventListener('click', async () => {
    const btn = document.getElementById('btnSaveAiConfig');
    const ai_enabled = document.getElementById('aiEnabledCheck').checked;
-   const ai_mode = document.getElementById('aiModeSelect').value || 'fallback';
+   const ai_mode = ai_enabled ? 'ai_only' : 'manual';
    const ai_model = document.getElementById('aiModelSelect').value || 'gemini-2.5-flash';
    const ai_system_prompt = document.getElementById('aiSystemPromptInput').value.trim();
 
@@ -2146,6 +2171,11 @@
 
  function renderRules() {
    const container = document.getElementById('rulesList');
+   const refPill = document.getElementById('aiRulesRefCountPill');
+   if (refPill) {
+     refPill.textContent = `📚 ${currentRules.length} Aturan Auto-Reply`;
+   }
+
    if (currentRules.length === 0) {
      container.innerHTML = '<p style="color: #64748b; font-size: 0.9rem;">Belum ada aturan balasan.</p>';
      return;
