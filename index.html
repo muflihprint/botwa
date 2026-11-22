@@ -530,6 +530,44 @@
 
      <!-- Daftar Kampanye & Progres Live -->
      <div id="bcCampaignList" style="margin-top: 14px;"></div>
+
+     <!-- Daftar Kampanye & Progres Live -->
+     <div id="bcCampaignList" style="margin-top: 14px;"></div>
+
+     <!-- Panel Detail Riwayat Penerima Broadcast -->
+     <div id="bcHistoryPanel" class="hidden" style="margin-top: 16px; border-top: 2px solid #e2e8f0; padding-top: 14px;">
+       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+         <div>
+           <h3 id="bcHistoryTitle" style="margin: 0; font-size: 1rem;">📋 Riwayat Pengiriman Broadcast</h3>
+           <small id="bcHistorySubtitle" style="color: #64748b;">Memuat daftar penerima...</small>
+         </div>
+         <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+           <select id="bcHistoryStatusFilter" class="compact-select" style="font-size: 0.8rem; padding: 6px 10px;" onchange="renderBroadcastHistoryTable()">
+             <option value="all">Semua Status</option>
+             <option value="sent" selected>Terkirim (Sent)</option>
+             <option value="failed">Gagal / Dilewati</option>
+             <option value="pending">Menunggu Antrean</option>
+           </select>
+           <button type="button" class="secondary sm" onclick="closeBroadcastHistory()">✕ Tutup</button>
+         </div>
+       </div>
+
+       <input type="text" id="bcHistorySearchInput" placeholder="🔍 Cari nama, nomor, atau isi pesan broadcast..." oninput="renderBroadcastHistoryTable()" style="margin-bottom: 10px;" />
+
+       <div class="table-wrap" style="max-height: 380px; border: 1px solid #e2e8f0; border-radius: 8px;">
+         <table class="report-table">
+           <thead>
+             <tr>
+               <th style="width: 110px;">Waktu (WITA)</th>
+               <th style="width: 170px;">Penerima</th>
+               <th style="width: 95px;">Status</th>
+               <th>Isi Pesan Terkirim / Keterangan</th>
+             </tr>
+           </thead>
+           <tbody id="bcHistoryTableBody"></tbody>
+         </table>
+       </div>
+     </div>
    </div>
  </div>
 
@@ -951,12 +989,15 @@
    }
  });
 
+ let activeHistoryBroadcastId = null;
+ let bcHistoryRowsCache = [];
+
  async function loadBroadcasts() {
    const { data } = await db
      .from('wa_broadcasts')
      .select('*')
      .order('created_at', { ascending: false })
-     .limit(6);
+     .limit(10);
 
    const container = document.getElementById('bcCampaignList');
    const bcTabBadge = document.getElementById('tabBroadcastBadge');
@@ -972,14 +1013,17 @@
      const done = (bc.sent_count || 0) + (bc.failed_count || 0);
      const pct = bc.total_recipients > 0 ? Math.min(100, Math.round((done / bc.total_recipients) * 100)) : 0;
 
-     let actionButtons = '';
+     let actionButtons = `
+       <button type="button" class="edit sm" onclick="openBroadcastHistory('${bc.id}', '${escapeHtml(bc.title).replace(/'/g, "\\'")}')">📋 Riwayat (${bc.sent_count})</button>
+     `;
+
      if (bc.status === 'running') {
-       actionButtons = `
+       actionButtons += `
          <button type="button" class="warn sm" onclick="updateBroadcastStatus('${bc.id}', 'paused')">⏸️ Jeda</button>
          <button type="button" class="danger sm" onclick="updateBroadcastStatus('${bc.id}', 'cancelled')">⏹️ Batalkan</button>
        `;
      } else if (bc.status === 'paused') {
-       actionButtons = `
+       actionButtons += `
          <button type="button" class="sm" onclick="updateBroadcastStatus('${bc.id}', 'running')">▶️ Lanjutkan</button>
          <button type="button" class="danger sm" onclick="updateBroadcastStatus('${bc.id}', 'cancelled')">⏹️ Batalkan</button>
        `;
@@ -992,7 +1036,7 @@
              <strong>${escapeHtml(bc.title)}</strong>
              <span class="bc-status-pill ${bc.status}" style="margin-left: 6px;">${escapeHtml(bc.status)}</span>
            </div>
-           <div style="display: flex; gap: 6px;">${actionButtons}</div>
+           <div style="display: flex; gap: 6px; flex-wrap: wrap;">${actionButtons}</div>
          </div>
          <div class="bc-progress-track">
            <div class="bc-progress-fill" style="width: ${pct}%;"></div>
@@ -1004,8 +1048,118 @@
        </div>
      `;
    }).join('');
+
+   if (activeHistoryBroadcastId) {
+     fetchBroadcastHistoryRows(activeHistoryBroadcastId);
+   }
  }
 
+ async function openBroadcastHistory(broadcastId, title) {
+   activeHistoryBroadcastId = broadcastId;
+   const panel = document.getElementById('bcHistoryPanel');
+   panel.classList.remove('hidden');
+   document.getElementById('bcHistoryTitle').textContent = `📋 Riwayat: ${title}`;
+   document.getElementById('bcHistoryTableBody').innerHTML =
+     '<tr><td colspan="4" style="color:#64748b;">Memuat data pengiriman...</td></tr>';
+   panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+   await fetchBroadcastHistoryRows(broadcastId);
+ }
+
+ function closeBroadcastHistory() {
+   activeHistoryBroadcastId = null;
+   bcHistoryRowsCache = [];
+   document.getElementById('bcHistoryPanel').classList.add('hidden');
+ }
+
+ async function fetchBroadcastHistoryRows(broadcastId) {
+   let allRows = [];
+   let from = 0;
+   const pageSize = 1000;
+
+   while (true) {
+     const { data, error } = await db
+       .from('wa_broadcast_recipients')
+       .select('id, phone, name, status, rendered_message, error_msg, sent_at')
+       .eq('broadcast_id', broadcastId)
+       .order('sent_at', { ascending: false, nullsFirst: false })
+       .order('id', { ascending: true })
+       .range(from, from + pageSize - 1);
+
+     if (error || !data || data.length === 0) break;
+     allRows = allRows.concat(data);
+     if (data.length < pageSize) break;
+     from += pageSize;
+   }
+
+   bcHistoryRowsCache = allRows;
+   const sentTotal = allRows.filter(r => r.status === 'sent').length;
+   const failTotal = allRows.filter(r => r.status === 'failed' || r.status === 'skipped').length;
+   const waitTotal = allRows.filter(r => r.status === 'pending').length;
+
+   document.getElementById('bcHistorySubtitle').textContent =
+     `Total ${allRows.length} nomor • ${sentTotal} terkirim • ${failTotal} gagal/dilewati • ${waitTotal} menunggu`;
+
+   renderBroadcastHistoryTable();
+ }
+
+ function renderBroadcastHistoryTable() {
+   const statusFilter = document.getElementById('bcHistoryStatusFilter').value;
+   const q = (document.getElementById('bcHistorySearchInput').value || '').trim().toLowerCase();
+   const tbody = document.getElementById('bcHistoryTableBody');
+
+   let filtered = bcHistoryRowsCache;
+   if (statusFilter === 'sent') {
+     filtered = filtered.filter(r => r.status === 'sent');
+   } else if (statusFilter === 'failed') {
+     filtered = filtered.filter(r => r.status === 'failed' || r.status === 'skipped');
+   } else if (statusFilter === 'pending') {
+     filtered = filtered.filter(r => r.status === 'pending');
+   }
+
+   if (q) {
+     filtered = filtered.filter(r =>
+       (r.phone || '').toLowerCase().includes(q) ||
+       (r.name || '').toLowerCase().includes(q) ||
+       (r.rendered_message || '').toLowerCase().includes(q)
+     );
+   }
+
+   if (filtered.length === 0) {
+     tbody.innerHTML = '<tr><td colspan="4" style="color:#64748b;">Tidak ada data yang cocok dengan filter.</td></tr>';
+     return;
+   }
+
+   tbody.innerHTML = filtered.map(r => {
+     const timeDisplay = r.sent_at
+       ? `${formatWitaDateLabel(toWitaDateKey(r.sent_at))}<br><small style="color:#64748b;">${formatWitaTime(r.sent_at)} WITA</small>`
+       : '<span style="color:#94a3b8;">-</span>';
+
+     const waUrl = r.phone ? `https://wa.me/${r.phone}` : '#';
+     const nameLabel = r.name ? `<strong>${escapeHtml(r.name)}</strong><br>` : '';
+     const phoneLink = `<a href="${waUrl}" target="_blank" rel="noopener noreferrer" class="wa-phone-link">+${escapeHtml(r.phone)}</a>`;
+
+     let badge = '<span class="badge-default">Antrean</span>';
+     if (r.status === 'sent') badge = '<span class="badge-done">Terkirim</span>';
+     else if (r.status === 'skipped') badge = '<span class="badge-wait" style="background:#d97706;">Bukan WA</span>';
+     else if (r.status === 'failed') badge = '<span class="badge-wait">Gagal</span>';
+
+     const contentHtml = r.rendered_message
+       ? `<div style="white-space: pre-wrap; font-size: 0.8rem; line-height: 1.38;">${escapeHtml(r.rendered_message)}</div>`
+       : (r.error_msg
+           ? `<span style="color:#dc2626; font-size:0.8rem;">${escapeHtml(r.error_msg)}</span>`
+           : '<span style="color:#94a3b8; font-size:0.8rem;">Menunggu jadwal kirim...</span>');
+
+     return `
+       <tr>
+         <td style="vertical-align: top;">${timeDisplay}</td>
+         <td style="vertical-align: top;">${nameLabel}${phoneLink}</td>
+         <td style="vertical-align: top;">${badge}</td>
+         <td style="vertical-align: top;">${contentHtml}</td>
+       </tr>
+     `;
+   }).join('');
+ }
+ 
  async function updateBroadcastStatus(id, newStatus) {
    await db
      .from('wa_broadcasts')
