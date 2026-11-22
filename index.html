@@ -299,8 +299,9 @@
      </div>
      <div>
        <label for="bcTargetSelect">Target Penerima</label>
-       <select id="bcTargetSelect">
+      <select id="bcTargetSelect">
          <option value="all_active" selected>Seluruh Kontak Tersimpan</option>
+         <option value="never_broadcasted">Kontak yang Belum Pernah Dikirimi Broadcast</option>
          <option value="chat_only">Hanya Kontak dari Riwayat Chat</option>
          <option value="manual_only">Hanya Nomor Tambahan di Bawah</option>
        </select>
@@ -661,16 +662,27 @@
 
  // --- Fitur Broadcast Anti-Spam ---
  async function loadContacts() {
-   const { data } = await db
-     .from('wa_contacts')
-     .select('*')
-     .order('updated_at', { ascending: false })
-     .limit(3000);
+   let allContacts = [];
+   let from = 0;
+   const pageSize = 1000;
 
-   contactsCache = data || [];
+   while (true) {
+     const { data, error } = await db
+       .from('wa_contacts')
+       .select('phone, name, source, last_broadcast_at')
+       .order('updated_at', { ascending: false })
+       .range(from, from + pageSize - 1);
+
+     if (error || !data || data.length === 0) break;
+     allContacts = allContacts.concat(data);
+     if (data.length < pageSize) break;
+     from += pageSize;
+   }
+
+   contactsCache = allContacts;
    const pill = document.getElementById('contactCountPill');
    if (pill) {
-     pill.textContent = `${contactsCache.length} Kontak`;
+     pill.textContent = `${contactsCache.length.toLocaleString('id-ID')} Kontak`;
    }
  }
 
@@ -700,7 +712,8 @@
 
  document.getElementById('bcMessageInput').addEventListener('input', previewBroadcastSample);
 
- document.getElementById('btnStartBroadcast').addEventListener('click', async () => {
+document.getElementById('btnStartBroadcast').addEventListener('click', async () => {
+   const btn = document.getElementById('btnStartBroadcast');
    const title = document.getElementById('bcTitleInput').value.trim() || 'Broadcast Promo';
    const targetMode = document.getElementById('bcTargetSelect').value;
    const message_template = document.getElementById('bcMessageInput').value.trim();
@@ -715,18 +728,17 @@
    const daily_limit = Math.max(10, Number(document.getElementById('bcDailyLimitInput').value || 100));
    const safe_hours_only = document.getElementById('bcSafeHoursCheck').checked;
 
-   // Kumpulkan daftar penerima unik
    const recipientMap = new Map();
 
-   if (targetMode === 'all_active' || targetMode === 'chat_only') {
+   if (targetMode !== 'manual_only') {
      for (const c of contactsCache) {
        if (targetMode === 'chat_only' && c.source !== 'chat_history') continue;
+       if (targetMode === 'never_broadcasted' && c.last_broadcast_at) continue;
        const p = normalizePhone(c.phone);
        if (p) recipientMap.set(p, { phone: p, name: c.name || '' });
      }
    }
 
-   // Tambahkan nomor manual/ekstra jika diisi
    const extraList = extraRaw.split(/[\s,;\n]+/).map(normalizePhone).filter(Boolean);
    for (const p of extraList) {
      if (!recipientMap.has(p)) {
@@ -737,50 +749,59 @@
 
    const recipients = Array.from(recipientMap.values());
    if (recipients.length === 0) {
-     return alert('Tidak ada nomor kontak yang ditemukan. Klik "Tarik Kontak" atau masukkan nomor manual.');
+     return alert('Tidak ada nomor kontak yang sesuai kriteria.');
    }
 
-   if (!confirm(`Kirim broadcast "${title}" ke ${recipients.length} nomor dengan jeda acak ${min_delay_sec}–${max_delay_sec} detik?`)) {
+   const estDays = Math.ceil(recipients.length / daily_limit);
+   if (!confirm(`Kirim broadcast "${title}" ke ${recipients.length.toLocaleString('id-ID')} nomor?\n\nEstimasi selesai: ±${estDays} hari (batas ${daily_limit} pesan/hari, otomatis lanjut setiap pukul 08:00 WITA).`)) {
      return;
    }
 
-   const broadcastId = 'bc_' + Date.now();
+   btn.disabled = true;
+   btn.textContent = `⏳ Menyiapkan ${recipients.length.toLocaleString('id-ID')} antrean...`;
 
-   const { error: bcErr } = await db.from('wa_broadcasts').insert({
-     id: broadcastId,
-     title,
-     message_template,
-     status: 'running',
-     total_recipients: recipients.length,
-     sent_count: 0,
-     failed_count: 0,
-     min_delay_sec,
-     max_delay_sec,
-     batch_size,
-     batch_pause_min,
-     daily_limit,
-     safe_hours_only,
-     current_note: 'Mempersiapkan antrean pengiriman...'
-   });
+   try {
+     const broadcastId = 'bc_' + Date.now();
 
-   if (bcErr) return alert('Gagal membuat broadcast: ' + bcErr.message);
+     const { error: bcErr } = await db.from('wa_broadcasts').insert({
+       id: broadcastId,
+       title,
+       message_template,
+       status: 'running',
+       total_recipients: recipients.length,
+       sent_count: 0,
+       failed_count: 0,
+       min_delay_sec,
+       max_delay_sec,
+       batch_size,
+       batch_pause_min,
+       daily_limit,
+       safe_hours_only,
+       current_note: 'Mempersiapkan antrean pengiriman...'
+     });
 
-   const rowsToInsert = recipients.map(r => ({
-     broadcast_id: broadcastId,
-     phone: r.phone,
-     name: r.name,
-     status: 'pending'
-   }));
+     if (bcErr) return alert('Gagal membuat broadcast: ' + bcErr.message);
 
-   for (let i = 0; i < rowsToInsert.length; i += 200) {
-     await db.from('wa_broadcast_recipients').insert(rowsToInsert.slice(i, i + 200));
+     const rowsToInsert = recipients.map(r => ({
+       broadcast_id: broadcastId,
+       phone: r.phone,
+       name: r.name,
+       status: 'pending'
+     }));
+
+     for (let i = 0; i < rowsToInsert.length; i += 500) {
+       await db.from('wa_broadcast_recipients').insert(rowsToInsert.slice(i, i + 500));
+     }
+
+     document.getElementById('bcTitleInput').value = '';
+     document.getElementById('bcExtraNumbersInput').value = '';
+     loadBroadcasts();
+   } finally {
+     btn.disabled = false;
+     btn.textContent = '🚀 Mulai Kirim Broadcast';
    }
-
-   document.getElementById('bcTitleInput').value = '';
-   document.getElementById('bcExtraNumbersInput').value = '';
-   loadBroadcasts();
  });
-
+ 
  async function loadBroadcasts() {
    const { data } = await db
      .from('wa_broadcasts')
