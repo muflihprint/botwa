@@ -412,7 +412,7 @@
        </div>
        <div style="display: flex; gap: 8px; align-items: center;">
          <span id="bcCampaignCountPill" class="sync-pill">0 Broadcast</span>
-         <button type="button" class="secondary sm" onclick="loadBroadcasts()">🔄 Refresh</button>
+         <button type="button" class="secondary sm" onclick="loadBroadcasts(true)">🔄 Refresh</button>
        </div>
      </div>
 
@@ -700,8 +700,8 @@
 </div>
 
 <script>
- const SUPABASE_URL = 'https://zqxeoveanevsvynptckm.supabase.co';
- const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxeGVvdmVhbmV2c3Z5bnB0Y2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNzUzODEsImV4cCI6MjA4OTg1MTM4MX0.eeIaytpW1wtWPJc2FbhufkDkhONUt9yypTZU4dTVmsM';
+ const SUPABASE_URL = 'ISI_DENGAN_SUPABASE_URL_PROJEK_BARU';
+ const SUPABASE_ANON_KEY = 'ISI_DENGAN_SUPABASE_ANON_KEY_PROJEK_BARU';
  const BOT_ID = 'bot_utama';
  const ACTIVE_TAB_KEY = 'wa_dashboard_active_tab';
 
@@ -717,6 +717,8 @@
  let lastRenderedChatKey = null;
  let lastRenderedChatHtml = '';
  let syncTimeoutTimer = null;
+ let contactsRefreshTimer = null;
+ let broadcastsRefreshTimer = null;
 
  function switchTab(tabId, scrollToTop = true) {
    const validTabs = ['tab-chat', 'tab-broadcast', 'tab-autoreply', 'tab-reports'];
@@ -961,6 +963,13 @@
    }
  }
 
+ function scheduleContactsRefresh() {
+   clearTimeout(contactsRefreshTimer);
+   contactsRefreshTimer = setTimeout(() => {
+     loadContacts();
+   }, 4000);
+ }
+
  function insertBroadcastSample() {
    document.getElementById('bcMessageInput').value =
      '{Halo|Hai|Assalamualaikum} Kak *{nama}* 👋, {salam}!\n\n' +
@@ -1071,7 +1080,7 @@
      activeHistoryBroadcastId = broadcastId;
      document.getElementById('bcTitleInput').value = '';
      document.getElementById('bcExtraNumbersInput').value = '';
-     await loadBroadcasts();
+     await loadBroadcasts(true);
    } finally {
      btn.disabled = false;
      btn.textContent = '🚀 Mulai Kirim Broadcast';
@@ -1082,7 +1091,7 @@
  let bcHistoryRowsCache = [];
  let bcCampaignsCache = [];
 
- async function loadBroadcasts() {
+ async function loadBroadcasts(includeHistory = true) {
    const { data } = await db
      .from('wa_broadcasts')
      .select('*')
@@ -1108,6 +1117,7 @@
    const stillExists = bcCampaignsCache.some(bc => bc.id === activeHistoryBroadcastId);
    if (!activeHistoryBroadcastId || !stillExists) {
      activeHistoryBroadcastId = bcCampaignsCache[0].id;
+     includeHistory = true;
    }
 
    renderBroadcastCampaignList();
@@ -1115,8 +1125,17 @@
    const selectedCampaign = bcCampaignsCache.find(bc => bc.id === activeHistoryBroadcastId);
    if (selectedCampaign) {
      document.getElementById('bcHistoryTitle').textContent = `📋 Riwayat: ${selectedCampaign.title}`;
-     await fetchBroadcastHistoryRows(selectedCampaign.id);
+     if (includeHistory) {
+       await fetchBroadcastHistoryRows(selectedCampaign.id);
+     }
    }
+ }
+
+ function scheduleBroadcastsRefresh() {
+   clearTimeout(broadcastsRefreshTimer);
+   broadcastsRefreshTimer = setTimeout(() => {
+     loadBroadcasts(false);
+   }, 3000);
  }
 
  function renderBroadcastCampaignList() {
@@ -1300,7 +1319,7 @@
        updated_at: new Date().toISOString()
      })
      .eq('id', id);
-   loadBroadcasts();
+   loadBroadcasts(false);
  }
 
  // --- Sinkronisasi & Chat View (Hemat Disk IO: 300 baris & kolom spesifik) ---
@@ -1684,7 +1703,7 @@
  document.getElementById('logFilterSelect').addEventListener('change', renderGroupedWhatsAppView);
  document.getElementById('chatSearchInput').addEventListener('input', renderGroupedWhatsAppView);
 
- // --- Laporan Harian & Durasi ---
+ // --- Laporan Harian & Durasi (Dimuat hanya saat tab Laporan dibuka) ---
  async function loadReports() {
    const periodDays = Number(document.getElementById('reportPeriodSelect').value || 7);
    const startDateKey = getShiftDateKey(periodDays - 1);
@@ -2383,16 +2402,15 @@
  loadRules();
  loadAdminQueue();
  loadContacts();
- loadBroadcasts();
+ loadBroadcasts(true);
  safeLoadLogs();
- loadReports();
  triggerChatSync();
 
  db.channel('dashboard-live')
    .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_bot_config' }, (payload) => {
      loadBotConfig();
      if (payload.new?.last_synced_at && payload.new.last_synced_at !== payload.old?.last_synced_at) {
-       loadContacts();
+       scheduleContactsRefresh();
        scheduleLogsRefresh();
      }
    })
@@ -2401,8 +2419,8 @@
      loadAdminQueue();
      scheduleLogsRefresh();
    })
-   .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_contacts' }, loadContacts)
-   .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_broadcasts' }, loadBroadcasts)
+   .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_contacts' }, scheduleContactsRefresh)
+   .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_broadcasts' }, scheduleBroadcastsRefresh)
    .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_logs' }, () => {
      scheduleLogsRefresh();
    })
