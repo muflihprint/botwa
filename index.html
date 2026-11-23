@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WhatsApp Auto-Reply & Broadcast Dashboard — Muflih Print</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
  body { font-family: system-ui, -apple-system, sans-serif; max-width: 1080px; margin: 1.25rem auto; padding: 0 1rem; background: #f8fafc; color: #0f172a; }
  .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: border-color 0.25s ease, box-shadow 0.25s ease; }
@@ -13,8 +12,7 @@
  #qrImage { width: 230px; height: 230px; border: 1px solid #cbd5e1; padding: 8px; border-radius: 10px; }
  .header-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 1rem; margin-bottom: 1rem; }
  label { display: block; font-size: 0.85rem; font-weight: 600; margin-top: 0.75rem; color: #334155; }
- input[type="text"], input[type="number"], textarea, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; margin-top: 4px; font-family: inherit; font-size: 0.92rem; background: #fff; }
- input[type="time"] { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; margin-top: 4px; font-family: inherit; font-size: 0.92rem; background: #fff; }
+ input[type="text"], input[type="password"], input[type="number"], input[type="time"], textarea, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; margin-top: 4px; font-family: inherit; font-size: 0.92rem; background: #fff; }
  .day-chip-group { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
  .day-chip { display: inline-flex; align-items: center; gap: 5px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 10px; font-size: 0.82rem; font-weight: 600; color: #334155; cursor: pointer; margin-top: 0; }
  .day-chip:has(input:checked) { background: #eef2ff; border-color: #6366f1; color: #3730a3; }
@@ -24,6 +22,7 @@
  @media (max-width: 640px) { .kw-grid, .grid-3 { grid-template-columns: 1fr; } }
  button, .btn-link { background: #16a34a; color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
  button:hover, .btn-link:hover { background: #15803d; }
+ button:disabled { opacity: 0.6; cursor: not-allowed; }
  button.secondary { background: #475569; }
  button.secondary:hover { background: #334155; }
  button.edit { background: #2563eb; }
@@ -35,6 +34,27 @@
  button.ai-btn { background: #7c3aed; }
  button.ai-btn:hover { background: #6d28d9; }
  button.sm, .btn-link.sm { padding: 7px 11px; font-size: 0.8rem; }
+
+ .server-bar {
+   background: #0f172a;
+   color: #f8fafc;
+   border-radius: 12px;
+   padding: 0.85rem 1.1rem;
+   margin-bottom: 1rem;
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   flex-wrap: wrap;
+   gap: 10px;
+ }
+ .server-bar input {
+   background: #1e293b;
+   border: 1px solid #334155;
+   color: #fff;
+   padding: 7px 10px;
+   margin-top: 0;
+   font-size: 0.84rem;
+ }
 
  .top-app-bar {
    background: #fff;
@@ -58,7 +78,6 @@
    gap: 8px;
    background: rgba(226, 232, 240, 0.94);
    backdrop-filter: blur(8px);
-   -webkit-backdrop-filter: blur(8px);
    padding: 6px;
    border-radius: 12px;
    border: 1px solid #cbd5e1;
@@ -69,7 +88,7 @@
    background: transparent;
    color: #475569;
    border: none;
-   padding: 10px 10px;
+   padding: 10px;
    border-radius: 8px;
    font-size: 0.88rem;
    font-weight: 700;
@@ -78,42 +97,23 @@
    align-items: center;
    justify-content: center;
    gap: 6px;
-   transition: all 0.15s ease;
  }
  .tab-btn:hover { background: rgba(255, 255, 255, 0.65); color: #0f172a; }
  .tab-btn.active { background: #ffffff; color: #15803d; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.1); }
- .tab-badge { background: #dc2626; color: #fff; font-size: 0.7rem; font-weight: 800; padding: 1px 6px; border-radius: 999px; line-height: 1.3; }
+ .tab-badge { background: #dc2626; color: #fff; font-size: 0.7rem; font-weight: 800; padding: 1px 6px; border-radius: 999px; }
  .tab-badge.green { background: #16a34a; }
- @media (max-width: 620px) {
-   .tab-nav { grid-template-columns: repeat(2, 1fr); top: 6px; }
-   .tab-btn { font-size: 0.84rem; padding: 9px 8px; }
- }
+ @media (max-width: 620px) { .tab-nav { grid-template-columns: repeat(2, 1fr); top: 6px; } }
 
- .ai-mode-info {
-   margin-top: 10px;
-   padding: 10px 12px;
-   border-radius: 8px;
-   font-size: 0.84rem;
-   line-height: 1.45;
-   border: 1px solid #ddd6fe;
-   background: #faf5ff;
-   color: #4c1d95;
- }
- .ai-mode-info.off {
-   border-color: #e2e8f0;
-   background: #f8fafc;
-   color: #334155;
- }
+ .ai-mode-info { margin-top: 10px; padding: 10px 12px; border-radius: 8px; font-size: 0.84rem; line-height: 1.45; border: 1px solid #ddd6fe; background: #faf5ff; color: #4c1d95; }
+ .ai-mode-info.off { border-color: #e2e8f0; background: #f8fafc; color: #334155; }
 
  .bc-safety-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px; margin-top: 10px; }
  .bc-preview-box { background: #fefce8; border: 1px dashed #eab308; border-radius: 8px; padding: 10px 12px; margin-top: 8px; font-size: 0.84rem; color: #1e293b; white-space: pre-wrap; }
  .bc-split-shell { display: grid; grid-template-columns: 320px 1fr; gap: 14px; align-items: start; }
  .bc-sidebar { border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; padding: 10px; max-height: 560px; overflow-y: auto; }
  .bc-detail-panel { border: 1px solid #e2e8f0; border-radius: 10px; background: #ffffff; padding: 12px; min-width: 0; }
- .bc-campaign-item { border: 1px solid #e2e8f0; background: #ffffff; border-radius: 9px; padding: 10px 11px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s ease; }
- .bc-campaign-item:last-child { margin-bottom: 0; }
- .bc-campaign-item:hover { border-color: #94a3b8; background: #f8fafc; }
- .bc-campaign-item.active { background: #f0fdf4; border-color: #16a34a; border-left: 4px solid #16a34a; box-shadow: 0 2px 6px rgba(22, 163, 74, 0.1); }
+ .bc-campaign-item { border: 1px solid #e2e8f0; background: #ffffff; border-radius: 9px; padding: 10px 11px; margin-bottom: 8px; cursor: pointer; }
+ .bc-campaign-item.active { background: #f0fdf4; border-color: #16a34a; border-left: 4px solid #16a34a; }
  .bc-progress-track { width: 100%; height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin: 7px 0; }
  .bc-progress-fill { height: 100%; background: #16a34a; transition: width 0.3s ease; }
  .bc-status-pill { display: inline-block; font-size: 0.68rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; text-transform: uppercase; }
@@ -121,10 +121,7 @@
  .bc-status-pill.paused { background: #fef3c7; color: #b45309; }
  .bc-status-pill.completed { background: #dbeafe; color: #1d4ed8; }
  .bc-status-pill.cancelled { background: #fee2e2; color: #b91c1c; }
- @media (max-width: 760px) {
-   .bc-split-shell { grid-template-columns: 1fr; }
-   .bc-sidebar { max-height: 300px; }
- }
+ @media (max-width: 760px) { .bc-split-shell { grid-template-columns: 1fr; } .bc-sidebar { max-height: 300px; } }
 
  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.25rem; }
  @media (max-width: 680px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
@@ -136,19 +133,17 @@
  .report-split { display: grid; grid-template-columns: 1fr 1.25fr; gap: 16px; align-items: start; }
  @media (max-width: 720px) { .report-split { grid-template-columns: 1fr; } }
  .sub-panel { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; background: #fcfcfd; }
- .sub-panel h4 { margin: 0 0 10px 0; font-size: 0.9rem; color: #1e293b; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
+ .sub-panel h4 { margin: 0 0 10px 0; font-size: 0.9rem; color: #1e293b; display: flex; justify-content: space-between; align-items: center; }
 
  .duration-row { margin-bottom: 10px; }
- .duration-row:last-child { margin-bottom: 0; }
  .duration-meta { display: flex; justify-content: space-between; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: #334155; }
  .bar-track { width: 100%; height: 9px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
- .bar-fill { height: 100%; border-radius: 999px; transition: width 0.3s ease; }
+ .bar-fill { height: 100%; border-radius: 999px; }
 
  .table-wrap { overflow-x: auto; max-height: 280px; }
  table.report-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
  table.report-table th { background: #f1f5f9; color: #334155; font-weight: 700; text-align: left; padding: 8px 10px; border-bottom: 1px solid #cbd5e1; position: sticky; top: 0; }
  table.report-table td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; color: #1e293b; }
- table.report-table tr:last-child td { border-bottom: none; }
  .num-col { text-align: right !important; font-variant-numeric: tabular-nums; }
 
  .rule-item { border: 1px solid #e2e8f0; background: #f8fafc; border-radius: 8px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
@@ -156,7 +151,6 @@
  .paused-item.replied { border-color: #cbd5e1; background: #f8fafc; }
  .wa-phone-link { color: #15803d; font-weight: 700; text-decoration: none; border-bottom: 1px dashed #16a34a; }
  .msg-preview { background: #fff; border: 1px solid #fed7aa; border-radius: 6px; padding: 6px 10px; margin-top: 6px; font-size: 0.85rem; color: #1e293b; }
- .paused-item.replied .msg-preview { border-color: #e2e8f0; color: #64748b; }
  .badge-wait { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #dc2626; color: #fff; text-transform: uppercase; }
  .badge-done { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #dcfce7; color: #15803d; text-transform: uppercase; }
  .badge-exact { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: #dbeafe; color: #1d4ed8; text-transform: uppercase; }
@@ -177,36 +171,33 @@
  .wa-search-bar { padding: 8px 10px; background: #f0f2f5; border-bottom: 1px solid #e2e8f0; }
  .wa-search-bar input { margin-top: 0; padding: 7px 12px; border-radius: 999px; font-size: 0.84rem; border: 1px solid #cbd5e1; background: #fff; }
  .wa-contact-list { flex: 1; overflow-y: auto; }
- .wa-contact-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; transition: background 0.15s ease; }
+ .wa-contact-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
  .wa-contact-item:hover { background: #f8fafc; }
  .wa-contact-item.active { background: #f0fdf4; border-left: 3px solid #16a34a; }
- .wa-avatar { width: 40px; height: 40px; border-radius: 50%; color: #fff; font-weight: 700; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; user-select: none; }
+ .wa-avatar { width: 40px; height: 40px; border-radius: 50%; color: #fff; font-weight: 700; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
  .wa-contact-meta { flex: 1; min-width: 0; }
  .wa-contact-top { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
  .wa-contact-name { font-weight: 700; font-size: 0.88rem; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
  .wa-contact-time { font-size: 0.7rem; color: #64748b; flex-shrink: 0; }
- .wa-contact-sub { font-size: 0.72rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
  .wa-contact-bottom { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-top: 3px; }
  .wa-contact-preview { font-size: 0.78rem; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
- .wa-count-pill { background: #16a34a; color: #fff; font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 999px; flex-shrink: 0; }
+ .wa-count-pill { background: #16a34a; color: #fff; font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 999px; }
 
  .wa-chat-panel { position: relative; display: flex; flex-direction: column; background-color: #efeae2; background-image: radial-gradient(#d6cfc2 0.75px, transparent 0.75px); background-size: 16px 16px; min-height: 0; }
  .wa-chat-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 14px; background: #f0f2f5; border-bottom: 1px solid #d1d7db; }
  .wa-back-btn { display: none; background: #e2e8f0; color: #0f172a; padding: 6px 10px; font-size: 0.8rem; }
- .wa-back-btn:hover { background: #cbd5e1; }
  .wa-messages-scroll { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
  .wa-scroll-bottom-btn { position: absolute; right: 16px; bottom: 16px; background: #16a34a; color: #fff; border: none; border-radius: 999px; padding: 7px 14px; font-size: 0.78rem; font-weight: 700; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.22); cursor: pointer; z-index: 10; }
- .wa-date-divider { align-self: center; background: rgba(255, 255, 255, 0.92); color: #54656f; font-size: 0.72rem; font-weight: 600; padding: 4px 12px; border-radius: 8px; margin: 8px 0; box-shadow: 0 1px 1px rgba(11, 20, 26, 0.08); }
- .wa-bubble { max-width: 78%; padding: 7px 10px 6px 10px; border-radius: 8px; font-size: 0.86rem; line-height: 1.42; position: relative; box-shadow: 0 1px 1px rgba(11, 20, 26, 0.12); word-wrap: break-word; white-space: pre-wrap; }
- .wa-bubble.in { align-self: flex-start; background: #ffffff; color: #111b21; border-top-left-radius: 2px; }
- .wa-bubble.out-bot { align-self: flex-end; background: #d9fdd3; color: #111b21; border-top-right-radius: 2px; }
- .wa-bubble.out-admin { align-self: flex-end; background: #e7f8ff; color: #111b21; border-top-right-radius: 2px; border: 1px solid #bae6fd; }
+ .wa-date-divider { align-self: center; background: rgba(255, 255, 255, 0.92); color: #54656f; font-size: 0.72rem; font-weight: 600; padding: 4px 12px; border-radius: 8px; margin: 8px 0; }
+ .wa-bubble { max-width: 78%; padding: 7px 10px 6px 10px; border-radius: 8px; font-size: 0.86rem; line-height: 1.42; box-shadow: 0 1px 1px rgba(11, 20, 26, 0.12); word-wrap: break-word; white-space: pre-wrap; }
+ .wa-bubble.in { align-self: flex-start; background: #ffffff; color: #111b21; }
+ .wa-bubble.out-bot { align-self: flex-end; background: #d9fdd3; color: #111b21; }
+ .wa-bubble.out-admin { align-self: flex-end; background: #e7f8ff; color: #111b21; border: 1px solid #bae6fd; }
  .wa-role-tag { display: block; font-size: 0.68rem; font-weight: 700; margin-bottom: 3px; }
  .wa-role-tag.bot { color: #15803d; }
  .wa-role-tag.admin { color: #0369a1; }
  .wa-role-tag.handover { color: #c2410c; }
  .wa-bubble-foot { display: flex; justify-content: flex-end; align-items: center; gap: 4px; font-size: 0.67rem; color: #667781; margin-top: 3px; }
- .wa-ticks { color: #53bdeb; font-weight: 700; letter-spacing: -2px; }
  .wa-empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #54656f; padding: 20px; font-size: 0.88rem; }
 
  @media (max-width: 680px) {
@@ -220,11 +211,23 @@
 </head>
 <body>
 
+<div class="server-bar">
+  <div style="font-size: 0.82rem;">
+    <strong>🖥️ Koneksi Server Laptop:</strong>
+    <span id="serverConnBadge" style="color: #fbbf24; margin-left: 6px;">Menghubungkan...</span>
+  </div>
+  <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; flex: 1; max-width: 620px;">
+    <input type="text" id="serverUrlInput" placeholder="URL Server (contoh: https://xxx.trycloudflare.com)" style="flex: 2; min-width: 210px;" />
+    <input type="password" id="serverSecretInput" placeholder="API Secret" style="flex: 1; min-width: 120px;" />
+    <button type="button" class="sm" onclick="saveServerCredentials()">Simpan</button>
+  </div>
+</div>
+
 <div id="qrSection" class="card" style="text-align: center;">
  <h2>Hubungkan Nomor WhatsApp Bot</h2>
  <p style="color: #475569;">Buka WhatsApp di HP &rarr; Perangkat Tertaut &rarr; Tautkan Perangkat</p>
- <img id="qrImage" src="" alt="Menunggu QR Code dari Worker..." />
- <p id="statusText" style="font-weight: 600; color: #16a34a;">Memeriksa status koneksi di Supabase...</p>
+ <img id="qrImage" src="" alt="Menunggu QR Code dari Server Laptop..." />
+ <p id="statusText" style="font-weight: 600; color: #16a34a;">Memeriksa status koneksi ke Server Laptop...</p>
 </div>
 
 <div id="dashboardSection" class="hidden">
@@ -232,7 +235,7 @@
  <div class="top-app-bar">
    <div>
      <div style="font-weight: 800; font-size: 1.05rem; color: #0f172a;">WhatsApp Bot & Broadcast — Muflih Print</div>
-     <div style="font-size: 0.78rem; color: #16a34a; font-weight: 600;">● Terhubung ke Worker & Supabase</div>
+     <div style="font-size: 0.78rem; color: #16a34a; font-weight: 600;">● Terhubung ke Server & Database SQLite Laptop</div>
    </div>
    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
      <label style="margin: 0; display: flex; align-items: center; gap: 6px; background: #f1f5f9; padding: 7px 12px; border-radius: 8px; cursor: pointer; font-size: 0.84rem;">
@@ -268,7 +271,7 @@
          <h3 style="margin: 0; color: #c2410c;">📥 Antrean Chat Admin <span id="waitingCountBadge" class="badge-wait" style="margin-left: 6px;">0 Menunggu</span></h3>
          <small style="color: #64748b;">Klik nomor untuk membuka chat langsung di WhatsApp</small>
        </div>
-       <button type="button" id="btnResumeAllBots" class="sm" onclick="resumeBotForAllUsers()">✅ Aktifkan Bot Lagi (Semua Nomor)</button>
+       <button type="button" class="sm" onclick="resumeBotForAllUsers()">✅ Aktifkan Bot Lagi (Semua Nomor)</button>
      </div>
      <div id="pausedList"></div>
    </div>
@@ -277,10 +280,10 @@
      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
        <div>
          <h2 style="margin: 0;">💬 Riwayat Chat WhatsApp (Per Nomor)</h2>
-         <span id="syncStatusPill" class="sync-pill" style="display: inline-block; margin-top: 4px;">Menyinkronkan chat...</span>
+         <span id="syncStatusPill" class="sync-pill" style="display: inline-block; margin-top: 4px;">Database Lokal Aktif</span>
        </div>
        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-         <select id="logFilterSelect" class="compact-select" style="font-size: 0.8rem; padding: 6px 10px;">
+         <select id="logFilterSelect" class="compact-select" style="font-size: 0.8rem; padding: 6px 10px;" onchange="renderGroupedWhatsAppView()">
            <option value="all" selected>Semua Kontak</option>
            <option value="bot_reply">Dibalas Bot / AI</option>
            <option value="admin_direct">Dibalas Admin</option>
@@ -293,7 +296,7 @@
      <div id="waShell" class="wa-shell">
        <div class="wa-sidebar">
          <div class="wa-search-bar">
-           <input type="text" id="chatSearchInput" placeholder="🔍 Cari nama, nomor, atau isi chat..." />
+           <input type="text" id="chatSearchInput" placeholder="🔍 Cari nama, nomor, atau isi chat..." oninput="renderGroupedWhatsAppView()" />
          </div>
          <div id="waContactList" class="wa-contact-list">
            <div style="padding: 16px; color: #64748b; font-size: 0.85rem;">Memuat daftar chat...</div>
@@ -306,7 +309,7 @@
              <button type="button" class="wa-back-btn" onclick="closeMobileChat()">&larr; Kembali</button>
              <div id="waHeaderAvatar" class="wa-avatar" style="width: 36px; height: 36px; font-size: 0.82rem;">WA</div>
              <div style="min-width: 0;">
-               <div id="waHeaderName" style="font-weight: 700; font-size: 0.92rem; color: #111b21; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-</div>
+               <div id="waHeaderName" style="font-weight: 700; font-size: 0.92rem; color: #111b21;">-</div>
                <div id="waHeaderSub" style="font-size: 0.75rem; color: #54656f;">-</div>
              </div>
            </div>
@@ -335,7 +338,7 @@
        </div>
        <div style="display: flex; gap: 8px; align-items: center;">
          <span id="contactCountPill" class="sync-pill ok">0 Kontak</span>
-         <button type="button" class="secondary sm" onclick="triggerChatSync()">🔄 Tarik Kontak</button>
+         <button type="button" class="secondary sm" onclick="loadContacts(true)">🔄 Muat Kontak</button>
        </div>
      </div>
 
@@ -362,7 +365,7 @@
        <label for="bcMessageInput" style="margin: 0;">Isi Pesan Broadcast (Mendukung Spintax Anti-Spam)</label>
        <button type="button" class="secondary sm" onclick="insertBroadcastSample()">✨ Sisipkan Contoh Spintax</button>
      </div>
-     <textarea id="bcMessageInput" rows="4" placeholder="{Halo|Hai|Assalamualaikum} Kak *{nama}* 👋, {salam}! Ada info promo terbaru dari *Muflih Print*..."></textarea>
+     <textarea id="bcMessageInput" rows="4" oninput="previewBroadcastSample()" placeholder="{Halo|Hai|Assalamualaikum} Kak *{nama}* 👋, {salam}! Ada info promo terbaru dari *Muflih Print*..."></textarea>
      <div class="var-hint">
        Gunakan variasi acak <code>{kata1|kata2|kata3}</code> agar teks tidak identik pada setiap penerima, serta variabel <code>{nama}</code> & <code>{salam}</code>.
      </div>
@@ -413,16 +416,13 @@
          <h3 style="margin: 0;">📋 Daftar & Riwayat Broadcast</h3>
          <small style="color: #64748b;">Klik salah satu broadcast di sebelah kiri untuk melihat detail penerima di sebelah kanan</small>
        </div>
-       <div style="display: flex; gap: 8px; align-items: center;">
-         <span id="bcCampaignCountPill" class="sync-pill">0 Broadcast</span>
-         <button type="button" class="secondary sm" onclick="loadBroadcasts(true)">🔄 Refresh</button>
-       </div>
+       <span id="bcCampaignCountPill" class="sync-pill">0 Broadcast</span>
      </div>
 
      <div class="bc-split-shell">
        <div class="bc-sidebar">
          <div id="bcCampaignList">
-           <div style="padding: 16px; color: #64748b; font-size: 0.85rem;">Memuat daftar broadcast...</div>
+           <div style="padding: 16px; color: #64748b; font-size: 0.85rem;">Belum ada riwayat broadcast.</div>
          </div>
        </div>
 
@@ -496,10 +496,7 @@
          <label for="aiSystemPromptInput" style="margin: 0;">Instruksi Tambahan & Gaya Bahasa AI (Opsional)</label>
          <button type="button" class="secondary sm" onclick="insertAiPromptSample()">✨ Isi Contoh Gaya Bahasa</button>
        </div>
-       <textarea id="aiSystemPromptInput" rows="5" oninput="markAiFormDirty()" placeholder="Tuliskan gaya bahasa atau catatan tambahan untuk AI (AI otomatis membaca seluruh Daftar Format Balasan Aktif di bawah)..."></textarea>
-       <div class="var-hint">
-         AI otomatis membaca seluruh <strong>Daftar Format Balasan Aktif</strong> di bawah sebagai referensi jawaban utama. Pertahankan kode <code>[ALIHKAN_ADMIN]</code> agar AI otomatis mengalihkan chat ke <strong>Antrean Admin</strong> (jeda bot 60 menit) saat dibutuhkan.
-       </div>
+       <textarea id="aiSystemPromptInput" rows="5" oninput="markAiFormDirty()"></textarea>
      </div>
 
      <div style="margin-top: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
@@ -514,41 +511,40 @@
          <h2 style="margin: 0;">🌙 Balasan Khusus di Luar Jam Kerja</h2>
          <small style="color: #64748b;">Otomatis aktif saat toko tutup atau hari libur (Zona Waktu WITA)</small>
        </div>
-       <span id="offHoursLiveStatusPill" class="sync-pill">🟢 Siaga (Saat Ini Jam Kerja)</span>
+       <span id="offHoursLiveStatusPill" class="sync-pill">🟢 Siaga</span>
      </div>
 
      <div class="grid-3" style="margin-top: 0;">
        <div>
          <label for="offHoursStartInput">Jam Tutup / Mulai Luar Jam Kerja</label>
-         <input type="time" id="offHoursStartInput" value="18:00" oninput="markOffHoursDirty(); updateOffHoursLiveBadge();" onchange="markOffHoursDirty(); updateOffHoursLiveBadge();" />
+         <input type="time" id="offHoursStartInput" value="18:00" oninput="markOffHoursDirty()" />
        </div>
        <div>
          <label for="offHoursEndInput">Jam Buka / Selesai Luar Jam Kerja</label>
-         <input type="time" id="offHoursEndInput" value="08:00" oninput="markOffHoursDirty(); updateOffHoursLiveBadge();" onchange="markOffHoursDirty(); updateOffHoursLiveBadge();" />
+         <input type="time" id="offHoursEndInput" value="08:00" oninput="markOffHoursDirty()" />
        </div>
        <div>
          <label for="offHoursCooldownInput">Jeda Ulang per Nomor (Menit)</label>
-         <input type="number" id="offHoursCooldownInput" value="60" min="0" max="1440" oninput="markOffHoursDirty()" onchange="markOffHoursDirty()" />
+         <input type="number" id="offHoursCooldownInput" value="60" min="0" max="1440" oninput="markOffHoursDirty()" />
        </div>
      </div>
 
      <label>Hari Libur Penuh (24 Jam di Luar Jam Kerja)</label>
      <div class="day-chip-group" id="offHoursDaysGroup">
-       <label class="day-chip"><input type="checkbox" value="0" checked onchange="markOffHoursDirty(); updateOffHoursLiveBadge();" /> Minggu</label>
-       <label class="day-chip"><input type="checkbox" value="1" onchange="markOffHoursDirty(); updateOffHoursLiveBadge();" /> Senin</label>
-       <label class="day-chip"><input type="checkbox" value="2" onchange="markOffHoursDirty(); updateOffHoursLiveBadge();" /> Selasa</label>
-       <label class="day-chip"><input type="checkbox" value="3" onchange="markOffHoursDirty(); updateOffHoursLiveBadge();" /> Rabu</label>
-       <label class="day-chip"><input type="checkbox" value="4" onchange="markOffHoursDirty(); updateOffHoursLiveBadge();" /> Kamis</label>
-       <label class="day-chip"><input type="checkbox" value="5" onchange="markOffHoursDirty(); updateOffHoursLiveBadge();" /> Jumat</label>
-       <label class="day-chip"><input type="checkbox" value="6" onchange="markOffHoursDirty(); updateOffHoursLiveBadge();" /> Sabtu</label>
+       <label class="day-chip"><input type="checkbox" value="0" checked onchange="markOffHoursDirty()" /> Minggu</label>
+       <label class="day-chip"><input type="checkbox" value="1" onchange="markOffHoursDirty()" /> Senin</label>
+       <label class="day-chip"><input type="checkbox" value="2" onchange="markOffHoursDirty()" /> Selasa</label>
+       <label class="day-chip"><input type="checkbox" value="3" onchange="markOffHoursDirty()" /> Rabu</label>
+       <label class="day-chip"><input type="checkbox" value="4" onchange="markOffHoursDirty()" /> Kamis</label>
+       <label class="day-chip"><input type="checkbox" value="5" onchange="markOffHoursDirty()" /> Jumat</label>
+       <label class="day-chip"><input type="checkbox" value="6" onchange="markOffHoursDirty()" /> Sabtu</label>
      </div>
 
      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 0.75rem;">
-       <label for="offHoursReplyInput" style="margin: 0;">Keterangan Tambahan Saat Jam Tutup (Otomatis Disisipkan di Bawah Balasan)</label>
+       <label for="offHoursReplyInput" style="margin: 0;">Keterangan Tambahan Saat Jam Tutup</label>
        <button type="button" class="secondary sm" onclick="insertOffHoursSample()">✨ Isi Template Muflih Print</button>
      </div>
-     <textarea id="offHoursReplyInput" rows="4" oninput="markOffHoursDirty()" placeholder="Ketik keterangan tambahan saat jam tutup di sini..."></textarea>
-     <div class="var-hint">Auto-reply maupun AI tetap berjalan normal dan keterangan di atas disisipkan otomatis di bagian bawah saat di luar jam operasional. Variabel: <code>{salam}</code>, <code>{nama}</code>, <code>{nomor}</code>, <code>{pesan}</code>.</div>
+     <textarea id="offHoursReplyInput" rows="4" oninput="markOffHoursDirty()"></textarea>
 
      <div style="margin-top: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
        <button type="button" id="btnSaveOffHours">💾 Simpan Pengaturan Luar Jam Kerja</button>
@@ -567,8 +563,8 @@
      <h3 id="formTitle" style="margin-bottom: 0.5rem;">Tambah Format Balasan Baru</h3>
 
      <label style="display: flex; align-items: center; gap: 8px; background: #fffbeb; border: 1px solid #fde68a; padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-top: 0.5rem;">
-       <input type="checkbox" id="isDefaultCheck" />
-       <span>Jadikan sebagai <strong>Balasan Default / Info Umum</strong> (cadangan jika AI nonaktif, atau menjadi informasi umum utama saat AI aktif)</span>
+       <input type="checkbox" id="isDefaultCheck" onchange="toggleRuleFormVisibility()" />
+       <span>Jadikan sebagai <strong>Balasan Default / Info Umum</strong></span>
      </label>
 
      <div id="keywordFieldsGrid" class="kw-grid">
@@ -589,29 +585,29 @@
 
      <label for="replyInput">Format Pesan Balasan</label>
      <textarea id="replyInput" rows="5" placeholder="Halo Kak *{nama}* 👋..."></textarea>
-     <div class="var-hint">Variabel: <code>{sapaan_awal}</code> (muncul hanya di chat pertama/jeda &gt;6 jam), <code>{salam}</code>, <code>{nama}</code>, <code>{nomor}</code>, <code>{pesan}</code>. Gunakan <code>*teks*</code> untuk huruf tebal.</div>
+     <div class="var-hint">Variabel: <code>{sapaan_awal}</code>, <code>{salam}</code>, <code>{nama}</code>, <code>{nomor}</code>, <code>{pesan}</code>.</div>
 
      <label id="followupCheckLabel" style="display: flex; align-items: center; gap: 8px; background: #eff6ff; border: 1px solid #bfdbfe; padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-top: 0.75rem;">
-       <input type="checkbox" id="expectsFollowupCheck" />
-       <span><strong>Tunggu Jawaban Lanjutan (Konteks):</strong> Deteksi jika pesan berikutnya berkaitan dengan balasan ini</span>
+       <input type="checkbox" id="expectsFollowupCheck" onchange="toggleRuleFormVisibility()" />
+       <span><strong>Tunggu Jawaban Lanjutan (Konteks)</strong></span>
      </label>
 
      <div id="followupFieldsBox" class="hidden" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; margin-top: 8px;">
-       <label for="followupKeywordsInput" style="margin-top: 0;">Kata Kunci Jawaban Berkaitan (Pisahkan koma)</label>
-       <input type="text" id="followupKeywordsInput" placeholder="Contoh: undangan, stiker, brosur, pcs, lembar" />
+       <label for="followupKeywordsInput" style="margin-top: 0;">Kata Kunci Jawaban Berkaitan</label>
+       <input type="text" id="followupKeywordsInput" placeholder="Contoh: undangan, stiker, brosur" />
 
        <label for="followupReplyInput">Balasan Lanjutan Jika Berkaitan</label>
-       <textarea id="followupReplyInput" rows="3" placeholder="Terima kasih infonya Kak *{nama}*, detail (*{pesan}*) diteruskan ke Admin..."></textarea>
+       <textarea id="followupReplyInput" rows="3"></textarea>
 
        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 8px;">
          <input type="checkbox" id="followupPauseCheck" checked />
-         <span>Otomatis alihkan ke Antrean Admin (jeda bot 60 menit) setelah balasan lanjutan terkirim</span>
+         <span>Otomatis alihkan ke Antrean Admin setelah balasan lanjutan terkirim</span>
        </label>
      </div>
 
      <div style="display: flex; gap: 8px; margin-top: 12px;">
        <button id="btnAddRule">+ Simpan Aturan Balasan</button>
-       <button id="btnCancelEdit" class="secondary hidden">Batal Edit</button>
+       <button id="btnCancelEdit" class="secondary hidden" onclick="resetRuleForm()">Batal Edit</button>
      </div>
    </div>
 
@@ -630,7 +626,7 @@
          <small style="color: #64748b;">Statistik chat harian (WITA) & kecepatan respons balasan</small>
        </div>
        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-         <select id="reportPeriodSelect" class="compact-select">
+         <select id="reportPeriodSelect" class="compact-select" onchange="loadReports()">
            <option value="1">Hari Ini</option>
            <option value="7" selected>7 Hari Terakhir</option>
            <option value="14">14 Hari Terakhir</option>
@@ -667,14 +663,12 @@
        <div class="sub-panel">
          <h4>
            <span>⏱️ Durasi Balas Chat</span>
-           <select id="durationScopeSelect" class="compact-select" style="font-size: 0.78rem; padding: 4px 8px;">
+           <select id="durationScopeSelect" class="compact-select" style="font-size: 0.78rem; padding: 4px 8px;" onchange="renderDurationBuckets()">
              <option value="admin" selected>Khusus Admin Langsung</option>
              <option value="all">Semua (Bot + Admin)</option>
            </select>
          </h4>
-         <div id="durationBucketsBox">
-           <div style="color: #64748b; font-size: 0.85rem;">Memuat data durasi...</div>
-         </div>
+         <div id="durationBucketsBox"></div>
        </div>
 
        <div class="sub-panel">
@@ -690,9 +684,7 @@
                  <th class="num-col">Ke Admin</th>
                </tr>
              </thead>
-             <tbody id="dailyReportBody">
-               <tr><td colspan="5" style="color:#64748b;">Memuat data harian...</td></tr>
-             </tbody>
+             <tbody id="dailyReportBody"></tbody>
            </table>
          </div>
        </div>
@@ -703,1789 +695,866 @@
 </div>
 
 <script>
-  const SUPABASE_URL = 'https://zqxeoveanevsvynptckm.supabase.co';
- const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxeGVvdmVhbmV2c3Z5bnB0Y2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNzUzODEsImV4cCI6MjA4OTg1MTM4MX0.eeIaytpW1wtWPJc2FbhufkDkhONUt9yypTZU4dTVmsM';
- const BOT_ID = 'bot_utama';
-
- const ACTIVE_TAB_KEY = 'wa_dashboard_active_tab';
-
- const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
- let currentRules = [];
- let editingRuleId = null;
- let cachedReportMetrics = null;
- let rawLogsCache = [];
- let groupedThreadsCache = [];
- let contactsCache = [];
- let selectedChatNumber = null;
- let lastRenderedContactListHtml = '';
- let lastRenderedChatKey = null;
- let lastRenderedChatHtml = '';
- let syncTimeoutTimer = null;
- let contactsRefreshTimer = null;
- let broadcastsRefreshTimer = null;
-
- function switchTab(tabId, scrollToTop = true) {
-   const validTabs = ['tab-chat', 'tab-broadcast', 'tab-autoreply', 'tab-reports'];
-   const targetId = validTabs.includes(tabId) ? tabId : 'tab-chat';
-
-   document.querySelectorAll('.tab-pane').forEach(pane => {
-     pane.classList.toggle('hidden', pane.id !== targetId);
-   });
-
-   document.querySelectorAll('.tab-btn').forEach(btn => {
-     btn.classList.toggle('active', btn.dataset.tab === targetId);
-   });
-
-   try {
-     localStorage.setItem(ACTIVE_TAB_KEY, targetId);
-   } catch (_) {}
-
-   if (scrollToTop) {
-     window.scrollTo({ top: 0, behavior: 'smooth' });
-   }
-
-   if (targetId === 'tab-chat') {
-     lastRenderedChatKey = null;
-     renderGroupedWhatsAppView();
-   } else if (targetId === 'tab-reports') {
-     loadReports();
-   }
- }
-
- function escapeHtml(str) {
-   return String(str || '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
- }
-
- function formatWitaTime(isoOrMs) {
-   return new Date(isoOrMs).toLocaleTimeString('id-ID', {
-     timeZone: 'Asia/Makassar',
-     hour: '2-digit',
-     minute: '2-digit'
-   });
- }
-
- function toWitaDateKey(isoOrMs) {
-   const parts = new Intl.DateTimeFormat('en-CA', {
-     timeZone: 'Asia/Makassar',
-     year: 'numeric',
-     month: '2-digit',
-     day: '2-digit'
-   }).formatToParts(new Date(isoOrMs));
-   const y = parts.find(p => p.type === 'year').value;
-   const m = parts.find(p => p.type === 'month').value;
-   const d = parts.find(p => p.type === 'day').value;
-   return `${y}-${m}-${d}`;
- }
-
- function formatWitaDateLabel(dateKey) {
-   const todayKey = getShiftDateKey(0);
-   const yesterdayKey = getShiftDateKey(1);
-   if (dateKey === todayKey) return 'Hari Ini';
-   if (dateKey === yesterdayKey) return 'Kemarin';
-
-   const [y, m, d] = dateKey.split('-').map(Number);
-   const dt = new Date(Date.UTC(y, m - 1, d, 4, 0, 0));
-   return dt.toLocaleDateString('id-ID', {
-     timeZone: 'Asia/Makassar',
-     weekday: 'short',
-     day: '2-digit',
-     month: 'short',
-     year: 'numeric'
-   });
- }
-
- function formatDuration(sec) {
-   if (sec === null || sec === undefined || isNaN(sec)) return '-';
-   const s = Math.round(sec);
-   if (s < 60) return `${s} detik`;
-   const m = Math.floor(s / 60);
-   const remS = s % 60;
-   if (m < 60) return remS > 0 ? `${m} mnt ${remS} dtk` : `${m} menit`;
-   const h = Math.floor(m / 60);
-   const remM = m % 60;
-   return remM > 0 ? `${h} jam ${remM} mnt` : `${h} jam`;
- }
-
- function getShiftDateKey(daysAgo) {
-   const dt = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
-   return toWitaDateKey(dt.toISOString());
- }
-
- function normalizePhone(raw) {
-   const digits = String(raw || '').replace(/\D/g, '');
-   if (!digits) return null;
-   if (digits.startsWith('0')) return '62' + digits.slice(1);
-   if (digits.startsWith('8')) return '62' + digits;
-   return digits.length >= 9 && digits.length <= 15 ? digits : null;
- }
-
- function renderClientSpintax(template, sampleName = 'Andi') {
-   let out = String(template || '').replace(/\{([^{}|]+\|[^{}]+)\}/g, (_, choicesStr) => {
-     const opts = choicesStr.split('|').map(s => s.trim()).filter(Boolean);
-     return opts.length ? opts[Math.floor(Math.random() * opts.length)] : '';
-   });
-   return out
-     .replace(/\{nama\}/gi, sampleName)
-     .replace(/\{nomor\}/gi, '6281234567890')
-     .replace(/\{salam\}/gi, 'Selamat siang');
- }
-
- // --- Pengaturan AI (Google Gemini) ---
- const DEFAULT_AI_PROMPT_SAMPLE =
-   'Gunakan gaya bahasa yang ramah, sopan, singkat, dan jelas dengan sapaan "Kak".\n' +
-   'Jawablah berdasarkan daftar pesan auto-reply yang tersedia. Jangan mengarang harga atau estimasi pengerjaan yang tidak tercantum.\n' +
-   'Jika pelanggan mengirim file untuk dicetak, meminta harga khusus/custom, revisi desain, komplain, atau ingin berbicara langsung dengan admin, sampaikan dengan sopan bahwa chat diteruskan ke Admin dan akhiri balasan dengan kode [ALIHKAN_ADMIN].';
-
- let isAiFormDirty = false;
-
- function markAiFormDirty() {
-   isAiFormDirty = true;
-   const hint = document.getElementById('aiUnsavedHint');
-   if (hint) hint.style.display = 'inline';
- }
-
- function clearAiFormDirty() {
-   isAiFormDirty = false;
-   const hint = document.getElementById('aiUnsavedHint');
-   if (hint) hint.style.display = 'none';
- }
-
- function updateAiLiveBadge() {
-   const pill = document.getElementById('aiLiveStatusPill');
-   const descBox = document.getElementById('aiModeDescriptionBox');
-   const configFieldsBox = document.getElementById('aiConfigFieldsBox');
-   const isEnabled = document.getElementById('aiEnabledCheck').checked;
-
-   if (configFieldsBox) {
-     configFieldsBox.classList.toggle('hidden', !isEnabled);
-   }
-
-   if (descBox) {
-     if (isEnabled) {
-       descBox.classList.remove('off');
-       descBox.innerHTML =
-         '<strong>Mode Saat Ini — AI Aktif:</strong> Semua balasan chat <strong>hanya berasal dari AI</strong> dengan mengacu pada daftar pesan Auto-Reply yang sudah Anda buat di bawah.';
-     } else {
-       descBox.classList.add('off');
-       descBox.innerHTML =
-         '<strong>Mode Saat Ini — AI Nonaktif:</strong> Balasan otomatis dikirim menggunakan pencocokan kata kunci &amp; balasan default pada daftar aturan di bawah tanpa AI.';
-     }
-   }
-
-   if (!pill) return;
-   if (isEnabled) {
-     pill.classList.add('ai');
-     pill.textContent = '🧠 AI Aktif (Hanya AI)';
-   } else {
-     pill.classList.remove('ai');
-     pill.textContent = '⚪ AI Nonaktif';
-   }
- }
-
- function populateAiForm(data, force = false) {
-   if (isAiFormDirty && !force) {
-     updateAiLiveBadge();
-     return;
-   }
-
-   document.getElementById('aiEnabledCheck').checked = Boolean(data.ai_enabled);
-   if (data.ai_model) document.getElementById('aiModelSelect').value = data.ai_model;
-
-   const promptEl = document.getElementById('aiSystemPromptInput');
-   if (document.activeElement !== promptEl) {
-     const hasSaved = typeof data.ai_system_prompt === 'string' && data.ai_system_prompt.trim() !== '';
-     promptEl.value = hasSaved ? data.ai_system_prompt : DEFAULT_AI_PROMPT_SAMPLE;
-   }
-
-   updateAiLiveBadge();
- }
-
- function insertAiPromptSample() {
-   const promptEl = document.getElementById('aiSystemPromptInput');
-   promptEl.value = DEFAULT_AI_PROMPT_SAMPLE;
-   promptEl.focus();
-   markAiFormDirty();
- }
-
- document.getElementById('btnSaveAiConfig').addEventListener('click', async () => {
-   const btn = document.getElementById('btnSaveAiConfig');
-   const ai_enabled = document.getElementById('aiEnabledCheck').checked;
-   const ai_mode = ai_enabled ? 'ai_only' : 'manual';
-   const ai_model = document.getElementById('aiModelSelect').value || 'gemini-2.5-flash';
-   const ai_system_prompt = document.getElementById('aiSystemPromptInput').value.trim();
-
-   btn.disabled = true;
-   btn.textContent = '⏳ Menyimpan...';
-   try {
-     const { error } = await db
-       .from('wa_bot_config')
-       .update({
-         ai_enabled,
-         ai_mode,
-         ai_model,
-         ai_system_prompt,
-         updated_at: new Date().toISOString()
-       })
-       .eq('id', BOT_ID);
-
-     if (error) {
-       return alert('Gagal menyimpan pengaturan AI (pastikan kolom SQL AI sudah dijalankan di Supabase): ' + error.message);
-     }
-
-     clearAiFormDirty();
-     updateAiLiveBadge();
-     btn.textContent = '✓ Pengaturan AI Tersimpan';
-     setTimeout(() => { btn.textContent = '💾 Simpan Pengaturan AI'; }, 1800);
-   } finally {
-     btn.disabled = false;
-   }
- });
-
- // --- Fitur Broadcast Anti-Spam ---
- async function loadContacts() {
-   let allContacts = [];
-   let from = 0;
-   const pageSize = 1000;
-
-   while (true) {
-     const { data, error } = await db
-       .from('wa_contacts')
-       .select('phone, name, source, last_broadcast_at')
-       .order('updated_at', { ascending: false })
-       .range(from, from + pageSize - 1);
-
-     if (error || !data || data.length === 0) break;
-     allContacts = allContacts.concat(data);
-     if (data.length < pageSize) break;
-     from += pageSize;
-   }
-
-   contactsCache = allContacts;
-   const pill = document.getElementById('contactCountPill');
-   if (pill) {
-     pill.textContent = `${contactsCache.length.toLocaleString('id-ID')} Kontak`;
-   }
- }
-
- function scheduleContactsRefresh() {
-   clearTimeout(contactsRefreshTimer);
-   contactsRefreshTimer = setTimeout(() => {
-     loadContacts();
-   }, 4000);
- }
-
- function insertBroadcastSample() {
-   document.getElementById('bcMessageInput').value =
-     '{Halo|Hai|Assalamualaikum} Kak *{nama}* 👋, {salam}!\n\n' +
-     '{Kabar gembira|Info spesial} dari *Muflih Print Makassar* — sekarang pemesanan cetak undangan, stiker, & dokumen PDF bisa dilakukan lebih praktis secara online (COD) di:\n' +
-     '👉 https://muflihprint.vercel.app\n\n' +
-     '{Silakan balas pesan ini jika ingin tanya-tanya dulu ya, Kak!|Langsung hubungi kami kapan saja jika butuh bantuan cetak ya, Kak!} 😊';
-   previewBroadcastSample();
- }
-
- function previewBroadcastSample() {
-   const tpl = document.getElementById('bcMessageInput').value.trim();
-   const box = document.getElementById('bcLivePreviewBox');
-   if (!tpl) {
-     box.classList.add('hidden');
-     return;
-   }
-   const v1 = renderClientSpintax(tpl, 'Budi');
-   const v2 = renderClientSpintax(tpl, 'Siti');
-   box.innerHTML =
-     `<strong>Contoh Variasi 1 (Penerima A):</strong>\n${escapeHtml(v1)}\n\n` +
-     `<strong>Contoh Variasi 2 (Penerima B):</strong>\n${escapeHtml(v2)}`;
-   box.classList.remove('hidden');
- }
-
- document.getElementById('bcMessageInput').addEventListener('input', previewBroadcastSample);
-
- document.getElementById('btnStartBroadcast').addEventListener('click', async () => {
-   const btn = document.getElementById('btnStartBroadcast');
-   const title = document.getElementById('bcTitleInput').value.trim() || 'Broadcast Promo';
-   const targetMode = document.getElementById('bcTargetSelect').value;
-   const message_template = document.getElementById('bcMessageInput').value.trim();
-   const extraRaw = document.getElementById('bcExtraNumbersInput').value;
-
-   if (!message_template) return alert('Isi pesan broadcast terlebih dahulu.');
-
-   const min_delay_sec = Math.max(8, Number(document.getElementById('bcMinDelayInput').value || 15));
-   const max_delay_sec = Math.max(min_delay_sec + 2, Number(document.getElementById('bcMaxDelayInput').value || 35));
-   const batch_size = Math.max(5, Number(document.getElementById('bcBatchSizeInput').value || 15));
-   const batch_pause_min = Math.max(1, Number(document.getElementById('bcBatchPauseInput').value || 3));
-   const daily_limit = Math.max(10, Number(document.getElementById('bcDailyLimitInput').value || 100));
-   const safe_hours_only = document.getElementById('bcSafeHoursCheck').checked;
-
-   const recipientMap = new Map();
-
-   if (targetMode !== 'manual_only') {
-     for (const c of contactsCache) {
-       if (targetMode === 'chat_only' && c.source !== 'chat_history') continue;
-       if (targetMode === 'never_broadcasted' && c.last_broadcast_at) continue;
-       const p = normalizePhone(c.phone);
-       if (p) recipientMap.set(p, { phone: p, name: c.name || '' });
-     }
-   }
-
-   const extraList = extraRaw.split(/[\s,;\n]+/).map(normalizePhone).filter(Boolean);
-   for (const p of extraList) {
-     if (!recipientMap.has(p)) {
-       const existing = contactsCache.find(c => c.phone === p);
-       recipientMap.set(p, { phone: p, name: existing?.name || '' });
-     }
-   }
-
-   const recipients = Array.from(recipientMap.values());
-   if (recipients.length === 0) {
-     return alert('Tidak ada nomor kontak yang sesuai kriteria.');
-   }
-
-   const estDays = Math.ceil(recipients.length / daily_limit);
-   if (!confirm(`Kirim broadcast "${title}" ke ${recipients.length.toLocaleString('id-ID')} nomor?\n\nEstimasi selesai: ±${estDays} hari (batas ${daily_limit} pesan/hari, otomatis lanjut setiap pukul 08:00 WITA).`)) {
-     return;
-   }
-
-   btn.disabled = true;
-   btn.textContent = `⏳ Menyiapkan ${recipients.length.toLocaleString('id-ID')} antrean...`;
-
-   try {
-     const broadcastId = 'bc_' + Date.now();
-
-     const { error: bcErr } = await db.from('wa_broadcasts').insert({
-       id: broadcastId,
-       title,
-       message_template,
-       status: 'running',
-       total_recipients: recipients.length,
-       sent_count: 0,
-       failed_count: 0,
-       min_delay_sec,
-       max_delay_sec,
-       batch_size,
-       batch_pause_min,
-       daily_limit,
-       safe_hours_only,
-       current_note: 'Mempersiapkan antrean pengiriman...'
-     });
-
-     if (bcErr) return alert('Gagal membuat broadcast: ' + bcErr.message);
-
-     const rowsToInsert = recipients.map(r => ({
-       broadcast_id: broadcastId,
-       phone: r.phone,
-       name: r.name,
-       status: 'pending'
-     }));
-
-     for (let i = 0; i < rowsToInsert.length; i += 500) {
-       await db.from('wa_broadcast_recipients').insert(rowsToInsert.slice(i, i + 500));
-     }
-
-     activeHistoryBroadcastId = broadcastId;
-     document.getElementById('bcTitleInput').value = '';
-     document.getElementById('bcExtraNumbersInput').value = '';
-     await loadBroadcasts(true);
-   } finally {
-     btn.disabled = false;
-     btn.textContent = '🚀 Mulai Kirim Broadcast';
-   }
- });
-
- let activeHistoryBroadcastId = null;
- let bcHistoryRowsCache = [];
- let bcCampaignsCache = [];
-
- async function loadBroadcasts(includeHistory = true) {
-   const { data } = await db
-     .from('wa_broadcasts')
-     .select('*')
-     .order('created_at', { ascending: false })
-     .limit(30);
-
-   bcCampaignsCache = data || [];
-   const bcTabBadge = document.getElementById('tabBroadcastBadge');
-   const hasRunning = bcCampaignsCache.some(bc => bc.status === 'running');
-   if (bcTabBadge) bcTabBadge.classList.toggle('hidden', !hasRunning);
-
-   const countPill = document.getElementById('bcCampaignCountPill');
-   if (countPill) countPill.textContent = `${bcCampaignsCache.length} Broadcast`;
-
-   if (bcCampaignsCache.length === 0) {
-     activeHistoryBroadcastId = null;
-     bcHistoryRowsCache = [];
-     renderBroadcastCampaignList();
-     renderEmptyBroadcastHistory();
-     return;
-   }
-
-   const stillExists = bcCampaignsCache.some(bc => bc.id === activeHistoryBroadcastId);
-   if (!activeHistoryBroadcastId || !stillExists) {
-     activeHistoryBroadcastId = bcCampaignsCache[0].id;
-     includeHistory = true;
-   }
-
-   renderBroadcastCampaignList();
-
-   const selectedCampaign = bcCampaignsCache.find(bc => bc.id === activeHistoryBroadcastId);
-   if (selectedCampaign) {
-     document.getElementById('bcHistoryTitle').textContent = `📋 Riwayat: ${selectedCampaign.title}`;
-     if (includeHistory) {
-       await fetchBroadcastHistoryRows(selectedCampaign.id);
-     }
-   }
- }
-
- function scheduleBroadcastsRefresh() {
-   clearTimeout(broadcastsRefreshTimer);
-   broadcastsRefreshTimer = setTimeout(() => {
-     loadBroadcasts(false);
-   }, 3000);
- }
-
- function renderBroadcastCampaignList() {
-   const container = document.getElementById('bcCampaignList');
-   if (!bcCampaignsCache || bcCampaignsCache.length === 0) {
-     container.innerHTML = '<div style="padding: 16px; color: #64748b; font-size: 0.84rem; text-align: center;">Belum ada daftar broadcast.</div>';
-     return;
-   }
-
-   container.innerHTML = bcCampaignsCache.map(bc => {
-     const isSelected = bc.id === activeHistoryBroadcastId;
-     const done = (bc.sent_count || 0) + (bc.failed_count || 0);
-     const pct = bc.total_recipients > 0 ? Math.min(100, Math.round((done / bc.total_recipients) * 100)) : 0;
-     const createdLabel = bc.created_at
-       ? `${formatWitaDateLabel(toWitaDateKey(bc.created_at))} • ${formatWitaTime(bc.created_at)} WITA`
-       : '';
-
-     let controlButtons = '';
-     if (bc.status === 'running') {
-       controlButtons = `
-         <button type="button" class="warn sm" onclick="event.stopPropagation(); updateBroadcastStatus('${bc.id}', 'paused')">⏸️ Jeda</button>
-         <button type="button" class="danger sm" onclick="event.stopPropagation(); updateBroadcastStatus('${bc.id}', 'cancelled')">⏹️ Batal</button>
-       `;
-     } else if (bc.status === 'paused') {
-       controlButtons = `
-         <button type="button" class="sm" onclick="event.stopPropagation(); updateBroadcastStatus('${bc.id}', 'running')">▶️ Lanjut</button>
-         <button type="button" class="danger sm" onclick="event.stopPropagation(); updateBroadcastStatus('${bc.id}', 'cancelled')">⏹️ Batal</button>
-       `;
-     }
-
-     return `
-       <div class="bc-campaign-item ${isSelected ? 'active' : ''}" onclick="selectBroadcastCampaign('${bc.id}')">
-         <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 6px;">
-           <strong style="font-size: 0.88rem; color: #0f172a; line-height: 1.3;">${escapeHtml(bc.title)}</strong>
-           <span class="bc-status-pill ${bc.status}" style="flex-shrink: 0;">${escapeHtml(bc.status)}</span>
-         </div>
-         ${createdLabel ? `<div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">${escapeHtml(createdLabel)}</div>` : ''}
-         <div class="bc-progress-track">
-           <div class="bc-progress-fill" style="width: ${pct}%;"></div>
-         </div>
-         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; color: #334155;">
-           <span>Terkirim: <strong>${bc.sent_count}</strong>/${bc.total_recipients} (${pct}%)</span>
-           ${bc.failed_count > 0 ? `<span style="color:#dc2626;">Gagal: ${bc.failed_count}</span>` : ''}
-         </div>
-         ${bc.current_note ? `<div style="font-size: 0.73rem; color: #64748b; margin-top: 4px; line-height: 1.3;">${escapeHtml(bc.current_note)}</div>` : ''}
-         ${controlButtons ? `<div style="display: flex; gap: 6px; margin-top: 8px;">${controlButtons}</div>` : ''}
-       </div>
-     `;
-   }).join('');
- }
-
- async function selectBroadcastCampaign(broadcastId) {
-   activeHistoryBroadcastId = broadcastId;
-   renderBroadcastCampaignList();
-
-   const selectedCampaign = bcCampaignsCache.find(bc => bc.id === broadcastId);
-   if (!selectedCampaign) return;
-
-   document.getElementById('bcHistoryTitle').textContent = `📋 Riwayat: ${selectedCampaign.title}`;
-   document.getElementById('bcHistorySubtitle').textContent = 'Memuat daftar penerima...';
-   document.getElementById('bcHistoryTableBody').innerHTML =
-     '<tr><td colspan="4" style="color:#64748b;">Memuat data pengiriman...</td></tr>';
-
-   await fetchBroadcastHistoryRows(broadcastId);
- }
-
- function renderEmptyBroadcastHistory() {
-   document.getElementById('bcHistoryTitle').textContent = '📋 Riwayat Pengiriman Broadcast';
-   document.getElementById('bcHistorySubtitle').textContent = 'Belum ada kampanye broadcast';
-   document.getElementById('bcHistoryTableBody').innerHTML =
-     '<tr><td colspan="4" style="color:#64748b; text-align:center; padding: 28px 12px;">Belum ada riwayat pengiriman broadcast. Buat broadcast baru pada formulir di atas untuk mulai mengirim.</td></tr>';
- }
-
- async function fetchBroadcastHistoryRows(broadcastId) {
-   let allRows = [];
-   let from = 0;
-   const pageSize = 1000;
-
-   while (true) {
-     const { data, error } = await db
-       .from('wa_broadcast_recipients')
-       .select('id, phone, name, status, rendered_message, error_msg, sent_at')
-       .eq('broadcast_id', broadcastId)
-       .order('id', { ascending: false })
-       .range(from, from + pageSize - 1);
-
-     if (error) {
-       document.getElementById('bcHistorySubtitle').textContent = 'Error memuat data: ' + error.message;
-       document.getElementById('bcHistoryTableBody').innerHTML =
-         `<tr><td colspan="4" style="color:#dc2626;">Gagal memuat riwayat: ${escapeHtml(error.message)}</td></tr>`;
-       return;
-     }
-
-     if (!data || data.length === 0) break;
-     allRows = allRows.concat(data);
-     if (data.length < pageSize) break;
-     from += pageSize;
-   }
-
-   allRows.sort((a, b) => {
-     const ta = a.sent_at ? new Date(a.sent_at).getTime() : 0;
-     const tb = b.sent_at ? new Date(b.sent_at).getTime() : 0;
-     return tb - ta;
-   });
-
-   bcHistoryRowsCache = allRows;
-   const sentTotal = allRows.filter(r => r.status === 'sent').length;
-   const failTotal = allRows.filter(r => r.status === 'failed' || r.status === 'skipped').length;
-   const waitTotal = allRows.filter(r => r.status === 'pending').length;
-
-   document.getElementById('bcHistorySubtitle').textContent =
-     `Total ${allRows.length} nomor • ${sentTotal} terkirim • ${failTotal} gagal/dilewati • ${waitTotal} menunggu`;
-
-   renderBroadcastHistoryTable();
- }
-
- function renderBroadcastHistoryTable() {
-   const statusFilter = document.getElementById('bcHistoryStatusFilter').value;
-   const q = (document.getElementById('bcHistorySearchInput').value || '').trim().toLowerCase();
-   const tbody = document.getElementById('bcHistoryTableBody');
-
-   let filtered = bcHistoryRowsCache;
-   if (statusFilter === 'sent') {
-     filtered = filtered.filter(r => r.status === 'sent');
-   } else if (statusFilter === 'failed') {
-     filtered = filtered.filter(r => r.status === 'failed' || r.status === 'skipped');
-   } else if (statusFilter === 'pending') {
-     filtered = filtered.filter(r => r.status === 'pending');
-   }
-
-   if (q) {
-     filtered = filtered.filter(r =>
-       (r.phone || '').toLowerCase().includes(q) ||
-       (r.name || '').toLowerCase().includes(q) ||
-       (r.rendered_message || '').toLowerCase().includes(q)
-     );
-   }
-
-   if (filtered.length === 0) {
-     tbody.innerHTML = '<tr><td colspan="4" style="color:#64748b;">Tidak ada data yang cocok dengan filter.</td></tr>';
-     return;
-   }
-
-   tbody.innerHTML = filtered.map(r => {
-     const timeDisplay = r.sent_at
-       ? `${formatWitaDateLabel(toWitaDateKey(r.sent_at))}<br><small style="color:#64748b;">${formatWitaTime(r.sent_at)} WITA</small>`
-       : '<span style="color:#94a3b8;">-</span>';
-
-     const waUrl = r.phone ? `https://wa.me/${r.phone}` : '#';
-     const nameLabel = r.name ? `<strong>${escapeHtml(r.name)}</strong><br>` : '';
-     const phoneLink = `<a href="${waUrl}" target="_blank" rel="noopener noreferrer" class="wa-phone-link">+${escapeHtml(r.phone)}</a>`;
-
-     let badge = '<span class="badge-default">Antrean</span>';
-     if (r.status === 'sent') badge = '<span class="badge-done">Terkirim</span>';
-     else if (r.status === 'skipped') badge = '<span class="badge-wait" style="background:#d97706;">Bukan WA</span>';
-     else if (r.status === 'failed') badge = '<span class="badge-wait">Gagal</span>';
-
-     const contentHtml = r.rendered_message
-       ? `<div style="white-space: pre-wrap; font-size: 0.8rem; line-height: 1.38;">${escapeHtml(r.rendered_message)}</div>`
-       : (r.error_msg
-           ? `<span style="color:#dc2626; font-size:0.8rem;">${escapeHtml(r.error_msg)}</span>`
-           : '<span style="color:#94a3b8; font-size:0.8rem;">Menunggu jadwal kirim...</span>');
-
-     return `
-       <tr>
-         <td style="vertical-align: top;">${timeDisplay}</td>
-         <td style="vertical-align: top;">${nameLabel}${phoneLink}</td>
-         <td style="vertical-align: top;">${badge}</td>
-         <td style="vertical-align: top;">${contentHtml}</td>
-       </tr>
-     `;
-   }).join('');
- }
-
- async function updateBroadcastStatus(id, newStatus) {
-   await db
-     .from('wa_broadcasts')
-     .update({
-       status: newStatus,
-       current_note: newStatus === 'paused' ? 'Dijeda oleh Admin' : (newStatus === 'cancelled' ? 'Dibatalkan oleh Admin' : 'Melanjutkan pengiriman...'),
-       updated_at: new Date().toISOString()
-     })
-     .eq('id', id);
-   loadBroadcasts(false);
- }
-
- // --- Sinkronisasi & Chat View ---
- async function triggerChatSync() {
-   const pill = document.getElementById('syncStatusPill');
-   if (pill) {
-     pill.classList.remove('ok');
-     pill.textContent = '🔄 Menyinkronkan chat & kontak...';
-   }
-
-   await db
-     .from('wa_bot_config')
-     .update({ sync_requested_at: new Date().toISOString() })
-     .eq('id', BOT_ID);
-
-   clearTimeout(syncTimeoutTimer);
-   syncTimeoutTimer = setTimeout(() => {
-     if (pill && !pill.classList.contains('ok')) {
-       pill.textContent = 'Data database dimuat (worker standby)';
-     }
-   }, 5000);
- }
-
- function getAvatarStyle(seedStr) {
-   const palette = ['#059669', '#0284c7', '#7c3aed', '#db2777', '#d97706', '#2563eb', '#0d9488', '#4f46e5'];
-   let hash = 0;
-   const s = String(seedStr || 'WA');
-   for (let i = 0; i < s.length; i++) hash = s.charCodeAt(i) + ((hash << 5) - hash);
-   const bg = palette[Math.abs(hash) % palette.length];
-   const cleaned = s.replace(/^\+62/, '0').replace(/[^a-zA-Z0-9]/g, '');
-   const initials = (cleaned.slice(0, 2) || 'WA').toUpperCase();
-   return { bg, initials };
- }
-
- function extractWaLink(senderNumber) {
-   if (!senderNumber || !senderNumber.startsWith('+')) return null;
-   const digits = senderNumber.replace(/\D/g, '');
-   return digits.length >= 8 ? `https://wa.me/${digits}` : null;
- }
-
- async function loadLogs() {
-   const { data } = await db
-     .from('wa_logs')
-     .select('id, sender_name, sender_number, incoming, reply, handed_over, log_type, incoming_at, created_at')
-     .order('created_at', { ascending: false })
-     .limit(300);
-
-   rawLogsCache = (data || []).reverse();
-   renderGroupedWhatsAppView();
- }
-
- function buildGroupedThreads() {
-   const filterVal = document.getElementById('logFilterSelect').value;
-   const keyword = (document.getElementById('chatSearchInput').value || '').trim().toLowerCase();
-   const map = new Map();
-
-   for (const log of rawLogsCache) {
-     const numKey = String(log.sender_number || log.sender_name || 'Tanpa Nomor');
-     if (!map.has(numKey)) {
-       map.set(numKey, {
-         number: numKey,
-         name: log.sender_name || numKey,
-         bubbles: [],
-         lastTimestampMs: 0,
-         lastPreview: '',
-         hasBotReply: false,
-         hasAdminDirect: false,
-         hasHandover: false
-       });
-     }
-
-     const thread = map.get(numKey);
-     if (log.sender_name && log.sender_name !== numKey && !log.sender_name.startsWith('+')) {
-       thread.name = log.sender_name;
-     }
-
-     const createdMs = new Date(log.created_at).getTime();
-     const incomingMs = new Date(log.incoming_at || log.created_at).getTime();
-
-     if (log.log_type === 'admin_direct') {
-       const text = log.reply || '';
-       thread.bubbles.push({ direction: 'out', role: 'admin', text, timestampMs: createdMs });
-       thread.hasAdminDirect = true;
-       if (createdMs >= thread.lastTimestampMs) {
-         thread.lastTimestampMs = createdMs;
-         thread.lastPreview = `👤 Admin: ${text}`;
-       }
-     } else if (log.log_type === 'bot_reply' && log.reply) {
-       thread.bubbles.push({
-         direction: 'in',
-         role: 'customer',
-         text: log.incoming || '',
-         timestampMs: incomingMs,
-         handedOver: Boolean(log.handed_over)
-       });
-       thread.bubbles.push({ direction: 'out', role: 'bot', text: log.reply, timestampMs: createdMs });
-       thread.hasBotReply = true;
-       if (log.handed_over) thread.hasHandover = true;
-       if (createdMs >= thread.lastTimestampMs) {
-         thread.lastTimestampMs = createdMs;
-         thread.lastPreview = `🤖 Bot: ${log.reply}`;
-       }
-     } else {
-       const text = log.incoming || '';
-       thread.bubbles.push({
-         direction: 'in',
-         role: 'customer',
-         text,
-         timestampMs: incomingMs,
-         handedOver: Boolean(log.handed_over || log.log_type === 'customer_admin_msg')
-       });
-       if (log.handed_over || log.log_type === 'customer_admin_msg') thread.hasHandover = true;
-       if (incomingMs >= thread.lastTimestampMs) {
-         thread.lastTimestampMs = incomingMs;
-         thread.lastPreview = text;
-       }
-     }
-   }
-
-   let threads = Array.from(map.values()).map(t => {
-     t.bubbles.sort((a, b) => a.timestampMs - b.timestampMs);
-     return t;
-   });
-
-   if (filterVal === 'bot_reply') threads = threads.filter(t => t.hasBotReply);
-   else if (filterVal === 'admin_direct') threads = threads.filter(t => t.hasAdminDirect);
-   else if (filterVal === 'incoming_only') threads = threads.filter(t => t.hasHandover || (!t.hasBotReply && !t.hasAdminDirect));
-
-   if (keyword) {
-     threads = threads.filter(t =>
-       t.name.toLowerCase().includes(keyword) ||
-       t.number.toLowerCase().includes(keyword) ||
-       t.bubbles.some(b => b.text.toLowerCase().includes(keyword))
-     );
-   }
-
-   threads.sort((a, b) => b.lastTimestampMs - a.lastTimestampMs);
-   return threads;
- }
-
- function updateActiveContactItemClass() {
-   const contactListEl = document.getElementById('waContactList');
-   if (!contactListEl) return;
-   contactListEl.querySelectorAll('.wa-contact-item').forEach(el => {
-     el.classList.toggle('active', el.dataset.threadNumber === selectedChatNumber);
-   });
- }
-
- function renderGroupedWhatsAppView() {
-   const threads = buildGroupedThreads();
-   groupedThreadsCache = threads;
-   const contactListEl = document.getElementById('waContactList');
-
-   if (threads.length === 0) {
-     const emptyHtml = '<div style="padding: 16px; color: #64748b; font-size: 0.85rem;">Tidak ada percakapan ditemukan.</div>';
-     if (lastRenderedContactListHtml !== emptyHtml) {
-       contactListEl.innerHTML = emptyHtml;
-       lastRenderedContactListHtml = emptyHtml;
-     }
-     renderActiveThread(null);
-     return;
-   }
-
-   if (!selectedChatNumber && window.innerWidth > 680) {
-     selectedChatNumber = threads[0].number;
-   }
-
-   const newListHtml = threads.map(t => {
-     const av = getAvatarStyle(t.name);
-     const dateKey = toWitaDateKey(t.lastTimestampMs);
-     const timeLabel = dateKey === getShiftDateKey(0)
-       ? formatWitaTime(t.lastTimestampMs)
-       : formatWitaDateLabel(dateKey);
-     const showSubNumber = t.name !== t.number;
-
-     return `
-       <div class="wa-contact-item" data-thread-number="${escapeHtml(t.number)}">
-         <div class="wa-avatar" style="background: ${av.bg};">${escapeHtml(av.initials)}</div>
-         <div class="wa-contact-meta">
-           <div class="wa-contact-top">
-             <span class="wa-contact-name">${escapeHtml(t.name)}</span>
-             <span class="wa-contact-time">${escapeHtml(timeLabel)}</span>
-           </div>
-           ${showSubNumber ? `<div class="wa-contact-sub">${escapeHtml(t.number)}</div>` : ''}
-           <div class="wa-contact-bottom">
-             <span class="wa-contact-preview">${escapeHtml(t.lastPreview)}</span>
-             <span class="wa-count-pill">${t.bubbles.length}</span>
-           </div>
-         </div>
-       </div>
-     `;
-   }).join('');
-
-   if (newListHtml !== lastRenderedContactListHtml) {
-     const prevListScroll = contactListEl.scrollTop;
-     contactListEl.innerHTML = newListHtml;
-     contactListEl.scrollTop = prevListScroll;
-     lastRenderedContactListHtml = newListHtml;
-   }
-
-   updateActiveContactItemClass();
-
-   const activeThread = threads.find(t => t.number === selectedChatNumber) || null;
-   renderActiveThread(activeThread);
- }
-
- (function bindContactListDelegation() {
-   const contactListEl = document.getElementById('waContactList');
-   let pointerDownY = 0;
-   let pointerDownNumber = null;
-
-   contactListEl.addEventListener('pointerdown', (e) => {
-     const item = e.target.closest('.wa-contact-item');
-     if (!item) {
-       pointerDownNumber = null;
-       return;
-     }
-     pointerDownY = e.clientY;
-     pointerDownNumber = item.dataset.threadNumber || null;
-   });
-
-   contactListEl.addEventListener('pointerup', (e) => {
-     if (!pointerDownNumber) return;
-     const movedY = Math.abs(e.clientY - pointerDownY);
-     const targetNum = pointerDownNumber;
-     pointerDownNumber = null;
-     if (movedY < 10) {
-       selectChatThread(targetNum);
-     }
-   });
-
-   contactListEl.addEventListener('click', (e) => {
-     const item = e.target.closest('.wa-contact-item');
-     if (!item) return;
-     const targetNum = item.dataset.threadNumber;
-     if (targetNum && targetNum !== selectedChatNumber) {
-       selectChatThread(targetNum);
-     }
-   });
- })();
-
- function scrollChatToBottom() {
-   const msgBox = document.getElementById('waMessagesContainer');
-   const btn = document.getElementById('waScrollBottomBtn');
-   msgBox.scrollTop = msgBox.scrollHeight;
-   if (btn) btn.classList.add('hidden');
- }
-
- document.getElementById('waMessagesContainer').addEventListener('scroll', () => {
-   const msgBox = document.getElementById('waMessagesContainer');
-   const btn = document.getElementById('waScrollBottomBtn');
-   const isAtBottom = (msgBox.scrollHeight - msgBox.scrollTop - msgBox.clientHeight) < 60;
-   if (isAtBottom && btn) btn.classList.add('hidden');
- });
-
- function selectChatThread(numberKey) {
-   selectedChatNumber = numberKey;
-   lastRenderedChatKey = null;
-   document.getElementById('waShell').classList.add('mobile-thread-open');
-   updateActiveContactItemClass();
-
-   const activeThread = groupedThreadsCache.find(t => t.number === numberKey) || null;
-   if (activeThread) {
-     renderActiveThread(activeThread);
-   } else {
-     renderGroupedWhatsAppView();
-   }
- }
-
- function closeMobileChat() {
-   selectedChatNumber = null;
-   lastRenderedChatKey = null;
-   lastRenderedChatHtml = '';
-   document.getElementById('waShell').classList.remove('mobile-thread-open');
-   updateActiveContactItemClass();
-   renderActiveThread(null);
- }
-
- function renderActiveThread(thread) {
-   const headerEl = document.getElementById('waChatHeader');
-   const msgBox = document.getElementById('waMessagesContainer');
-   const scrollBtn = document.getElementById('waScrollBottomBtn');
-
-   if (!thread) {
-     lastRenderedChatKey = null;
-     lastRenderedChatHtml = '';
-     headerEl.classList.add('hidden');
-     if (scrollBtn) scrollBtn.classList.add('hidden');
-     msgBox.innerHTML = `
-       <div class="wa-empty-state">
-         <div style="font-size: 2rem; margin-bottom: 8px;">💬</div>
-         <div>Pilih salah satu nomor di sebelah kiri untuk melihat riwayat percakapan.</div>
-       </div>
-     `;
-     return;
-   }
-
-   headerEl.classList.remove('hidden');
-   const av = getAvatarStyle(thread.name);
-   const headerAv = document.getElementById('waHeaderAvatar');
-   headerAv.style.background = av.bg;
-   headerAv.textContent = av.initials;
-
-   document.getElementById('waHeaderName').textContent = thread.name;
-   document.getElementById('waHeaderSub').textContent = `${thread.number} • ${thread.bubbles.length} pesan tercatat`;
-
-   const waLink = extractWaLink(thread.number);
-   const openBtn = document.getElementById('waHeaderOpenLink');
-   if (waLink) {
-     openBtn.href = waLink;
-     openBtn.classList.remove('hidden');
-   } else {
-     openBtn.classList.add('hidden');
-   }
-
-   let lastDateKey = '';
-   const htmlParts = [];
-
-   for (const b of thread.bubbles) {
-     const dKey = toWitaDateKey(b.timestampMs);
-     if (dKey !== lastDateKey) {
-       lastDateKey = dKey;
-       htmlParts.push(`<div class="wa-date-divider">${escapeHtml(formatWitaDateLabel(dKey))}</div>`);
-     }
-
-     const timeStr = formatWitaTime(b.timestampMs);
-
-     if (b.direction === 'in') {
-       const handoverTag = b.handedOver
-         ? `<span class="wa-role-tag handover">📥 Diteruskan ke Admin</span>`
-         : '';
-       htmlParts.push(`
-         <div class="wa-bubble in">
-           ${handoverTag}
-           <div>${escapeHtml(b.text)}</div>
-           <div class="wa-bubble-foot"><span>${timeStr}</span></div>
-         </div>
-       `);
-     } else if (b.role === 'admin') {
-       htmlParts.push(`
-         <div class="wa-bubble out-admin">
-           <span class="wa-role-tag admin">👤 Admin Langsung</span>
-           <div>${escapeHtml(b.text)}</div>
-           <div class="wa-bubble-foot"><span>${timeStr}</span><span class="wa-ticks">✓✓</span></div>
-         </div>
-       `);
-     } else {
-       htmlParts.push(`
-         <div class="wa-bubble out-bot">
-           <span class="wa-role-tag bot">🤖 Auto-Reply Bot / AI</span>
-           <div>${escapeHtml(b.text)}</div>
-           <div class="wa-bubble-foot"><span>${timeStr}</span><span class="wa-ticks">✓✓</span></div>
-         </div>
-       `);
-     }
-   }
-
-   const newHtml = htmlParts.join('');
-   const isThreadChanged = thread.number !== lastRenderedChatKey;
-
-   if (!isThreadChanged && newHtml === lastRenderedChatHtml) {
-     return;
-   }
-
-   const wasNearBottom = (msgBox.scrollHeight - msgBox.scrollTop - msgBox.clientHeight) < 80;
-   const prevScrollTop = msgBox.scrollTop;
-
-   msgBox.innerHTML = newHtml;
-   lastRenderedChatKey = thread.number;
-   lastRenderedChatHtml = newHtml;
-
-   if (isThreadChanged || wasNearBottom) {
-     msgBox.scrollTop = msgBox.scrollHeight;
-     if (scrollBtn) scrollBtn.classList.add('hidden');
-   } else {
-     msgBox.scrollTop = prevScrollTop;
-     if (scrollBtn) scrollBtn.classList.remove('hidden');
-   }
- }
-
- document.getElementById('logFilterSelect').addEventListener('change', renderGroupedWhatsAppView);
- document.getElementById('chatSearchInput').addEventListener('input', renderGroupedWhatsAppView);
-
- // --- Laporan Harian & Durasi (Dimuat hanya saat tab Laporan dibuka) ---
- async function loadReports() {
-   const periodDays = Number(document.getElementById('reportPeriodSelect').value || 7);
-   const startDateKey = getShiftDateKey(periodDays - 1);
-   const endDateKey = getShiftDateKey(0);
-   const fetchFromIso = new Date(Date.now() - (periodDays + 30) * 24 * 60 * 60 * 1000).toISOString();
-
-   const { data: logs, error } = await db
-     .from('wa_logs')
-     .select('id, sender_number, handed_over, log_type, incoming_at, created_at')
-     .gte('created_at', fetchFromIso)
-     .order('created_at', { ascending: true })
-     .limit(3000);
-
-   if (error || !logs) return;
-
-   const firstSeenDateByNumber = new Map();
-   for (const row of logs) {
-     if (row.log_type === 'admin_direct') continue;
-     const dKey = toWitaDateKey(row.incoming_at || row.created_at);
-     if (!firstSeenDateByNumber.has(row.sender_number)) {
-       firstSeenDateByNumber.set(row.sender_number, dKey);
-     }
-   }
-
-   const dailyMap = new Map();
-   for (let i = 0; i < periodDays; i++) {
-     const k = getShiftDateKey(i);
-     dailyMap.set(k, {
-       dateKey: k,
-       uniqueSenders: new Set(),
-       brandNewSenders: new Set(),
-       totalIncoming: 0,
-       adminRequests: new Set()
-     });
-   }
-
-   const pendingAdminWait = new Map();
-   const adminDurations = [];
-   const botDurations = [];
-
-   for (const row of logs) {
-     const createdMs = new Date(row.created_at).getTime();
-     const incomingMs = new Date(row.incoming_at || row.created_at).getTime();
-     const eventDateKey = toWitaDateKey(row.incoming_at || row.created_at);
-
-     if (row.log_type !== 'admin_direct' && dailyMap.has(eventDateKey)) {
-       const dayStat = dailyMap.get(eventDateKey);
-       dayStat.totalIncoming += 1;
-       dayStat.uniqueSenders.add(row.sender_number);
-
-       if (firstSeenDateByNumber.get(row.sender_number) === eventDateKey) {
-         dayStat.brandNewSenders.add(row.sender_number);
-       }
-       if (row.handed_over || row.log_type === 'customer_admin_msg') {
-         dayStat.adminRequests.add(row.sender_number);
-       }
-     }
-
-     if (row.log_type === 'bot_reply') {
-       if (eventDateKey >= startDateKey && eventDateKey <= endDateKey) {
-         const botSec = Math.max(1, (createdMs - incomingMs) / 1000);
-         botDurations.push(botSec);
-       }
-       if (row.handed_over) {
-         pendingAdminWait.set(row.sender_number, {
-           waitStartMs: createdMs,
-           dateKey: toWitaDateKey(row.created_at)
-         });
-       }
-     } else if (row.log_type === 'customer_admin_msg' || row.log_type === 'customer_msg') {
-       if (!pendingAdminWait.has(row.sender_number)) {
-         pendingAdminWait.set(row.sender_number, {
-           waitStartMs: createdMs,
-           dateKey: toWitaDateKey(row.created_at)
-         });
-       }
-     } else if (row.log_type === 'admin_direct') {
-       if (pendingAdminWait.has(row.sender_number)) {
-         const waitInfo = pendingAdminWait.get(row.sender_number);
-         if (waitInfo.dateKey >= startDateKey && waitInfo.dateKey <= endDateKey) {
-           const adminSec = Math.max(1, (createdMs - waitInfo.waitStartMs) / 1000);
-           adminDurations.push(adminSec);
-         }
-         pendingAdminWait.delete(row.sender_number);
-       }
-     }
-   }
-
-   let unrepliedAdminCount = 0;
-   for (const waitInfo of pendingAdminWait.values()) {
-     if (waitInfo.dateKey >= startDateKey && waitInfo.dateKey <= endDateKey) {
-       unrepliedAdminCount += 1;
-     }
-   }
-
-   let totalUniqueSessions = 0;
-   let totalBrandNewContacts = 0;
-   let totalIncomingMsgs = 0;
-   let totalAdminReqSessions = 0;
-
-   const dailyRows = Array.from(dailyMap.values());
-   for (const d of dailyRows) {
-     totalUniqueSessions += d.uniqueSenders.size;
-     totalBrandNewContacts += d.brandNewSenders.size;
-     totalIncomingMsgs += d.totalIncoming;
-     totalAdminReqSessions += d.adminRequests.size;
-   }
-
-   const avgAdminSec = adminDurations.length > 0
-     ? adminDurations.reduce((a, b) => a + b, 0) / adminDurations.length
-     : null;
-   const avgBotSec = botDurations.length > 0
-     ? botDurations.reduce((a, b) => a + b, 0) / botDurations.length
-     : null;
-
-   document.getElementById('kpiUniqueChats').textContent = totalUniqueSessions;
-   document.getElementById('kpiNewContactsSub').textContent = `${totalBrandNewContacts} kontak baru pertama kali`;
-   document.getElementById('kpiTotalIncoming').textContent = totalIncomingMsgs;
-   document.getElementById('kpiAdminReqSub').textContent = `${totalAdminReqSessions} sesi konsultasi admin`;
-   document.getElementById('kpiAvgAdminTime').textContent = formatDuration(avgAdminSec);
-   document.getElementById('kpiAdminCountSub').textContent = `${adminDurations.length} dibalas${unrepliedAdminCount > 0 ? ` • ${unrepliedAdminCount} menunggu` : ''}`;
-   document.getElementById('kpiAvgBotTime').textContent = formatDuration(avgBotSec);
-   document.getElementById('kpiBotCountSub').textContent = `${botDurations.length} balasan otomatis`;
-
-   const tbody = document.getElementById('dailyReportBody');
-   tbody.innerHTML = dailyRows.map(d => `
-     <tr>
-       <td><strong>${formatWitaDateLabel(d.dateKey)}</strong></td>
-       <td class="num-col"><strong>${d.uniqueSenders.size}</strong></td>
-       <td class="num-col" style="color:#16a34a; font-weight:700;">+${d.brandNewSenders.size}</td>
-       <td class="num-col">${d.totalIncoming}</td>
-       <td class="num-col" style="color:#c2410c; font-weight:600;">${d.adminRequests.size}</td>
-     </tr>
-   `).join('');
-
-   cachedReportMetrics = {
-     adminDurations,
-     allDurations: [...adminDurations, ...botDurations],
-     unrepliedAdminCount
-   };
-   renderDurationBuckets();
- }
-
- function renderDurationBuckets() {
-   if (!cachedReportMetrics) return;
-   const scope = document.getElementById('durationScopeSelect').value;
-   const list = scope === 'admin' ? cachedReportMetrics.adminDurations : cachedReportMetrics.allDurations;
-   const unreplied = cachedReportMetrics.unrepliedAdminCount;
-
-   const buckets = [
-     { label: '⚡ < 1 Menit (Sangat Cepat)', color: '#16a34a', count: 0 },
-     { label: '🟢 1 – 5 Menit (Cepat)', color: '#22c55e', count: 0 },
-     { label: '🟡 5 – 15 Menit (Normal)', color: '#eab308', count: 0 },
-     { label: '🟠 15 – 60 Menit (Agak Lama)', color: '#f97316', count: 0 },
-     { label: '🔴 > 60 Menit (Lama)', color: '#dc2626', count: 0 }
-   ];
-
-   for (const sec of list) {
-     if (sec < 60) buckets[0].count += 1;
-     else if (sec < 300) buckets[1].count += 1;
-     else if (sec < 900) buckets[2].count += 1;
-     else if (sec < 3600) buckets[3].count += 1;
-     else buckets[4].count += 1;
-   }
-
-   const totalSample = list.length + unreplied;
-   const box = document.getElementById('durationBucketsBox');
-
-   if (totalSample === 0) {
-     box.innerHTML = '<div style="color: #64748b; font-size: 0.84rem; padding: 12px 0;">Belum ada data balasan pada periode ini.</div>';
-     return;
-   }
-
-   let html = buckets.map(b => {
-     const pct = totalSample > 0 ? Math.round((b.count / totalSample) * 100) : 0;
-     return `
-       <div class="duration-row">
-         <div class="duration-meta">
-           <span>${b.label}</span>
-           <span>${b.count} chat (${pct}%)</span>
-         </div>
-         <div class="bar-track">
-           <div class="bar-fill" style="width: ${pct}%; background: ${b.color};"></div>
-         </div>
-       </div>
-     `;
-   }).join('');
-
-   if (unreplied > 0) {
-     const pctWait = Math.round((unreplied / totalSample) * 100);
-     html += `
-       <div class="duration-row" style="margin-top: 12px; padding-top: 8px; border-top: 1px dashed #cbd5e1;">
-         <div class="duration-meta" style="color: #dc2626;">
-           <span>⏳ Belum Dibalas Admin</span>
-           <span>${unreplied} chat (${pctWait}%)</span>
-         </div>
-         <div class="bar-track">
-           <div class="bar-fill" style="width: ${pctWait}%; background: #94a3b8;"></div>
-         </div>
-       </div>
-     `;
-   }
-
-   box.innerHTML = html;
- }
-
- document.getElementById('reportPeriodSelect').addEventListener('change', loadReports);
- document.getElementById('durationScopeSelect').addEventListener('change', renderDurationBuckets);
-
- async function loadBotConfig() {
-   const { data } = await db.from('wa_bot_config').select('*').eq('id', BOT_ID).single();
-   if (!data) return;
-
-   document.getElementById('toggleActive').checked = data.enabled;
-   populateAiForm(data);
-   populateOffHoursForm(data);
-
-   if (data.last_synced_at) {
-     const pill = document.getElementById('syncStatusPill');
-     if (pill) {
-       pill.classList.add('ok');
-       pill.textContent = `✓ Tersinkronisasi (${formatWitaTime(data.last_synced_at)} WITA)`;
-     }
-   }
-
-   if (data.status === 'connected') {
-     document.getElementById('qrSection').classList.add('hidden');
-     document.getElementById('dashboardSection').classList.remove('hidden');
-   } else {
-     document.getElementById('qrSection').classList.remove('hidden');
-     document.getElementById('dashboardSection').classList.add('hidden');
-     if (data.qr_code) {
-       document.getElementById('qrImage').src = data.qr_code;
-       document.getElementById('statusText').textContent = 'Silakan scan QR Code di atas.';
-     } else {
-       document.getElementById('statusText').textContent = 'Menunggu worker Baileys menghasilkan QR Code...';
-     }
-   }
- }
-
- const DEFAULT_OFF_HOURS_SAMPLE =
-   '🌙 *Info Jam Tutup:*\n' +
-   'Saat ini *Muflih Print* sedang tutup (di luar jam operasional: Senin – Sabtu 08.00 – 18.00 WITA, Minggu Libur).\n\n' +
-   'Chat langsung ke Admin tetap kami terima dan akan segera dibalas oleh Admin pada *jam buka* atau saat *Admin sedang online*. 🙏';
-
- let isOffHoursDirty = false;
-
- function markOffHoursDirty() {
-   isOffHoursDirty = true;
-   const hint = document.getElementById('offHoursUnsavedHint');
-   if (hint) hint.style.display = 'inline';
- }
-
- function clearOffHoursDirty() {
-   isOffHoursDirty = false;
-   const hint = document.getElementById('offHoursUnsavedHint');
-   if (hint) hint.style.display = 'none';
- }
-
- function populateOffHoursForm(data, force = false) {
-   if (isOffHoursDirty && !force) {
-     updateOffHoursLiveBadge();
-     return;
-   }
-
-   document.getElementById('offHoursStartInput').value = data.off_hours_start || '18:00';
-   document.getElementById('offHoursEndInput').value = data.off_hours_end || '08:00';
-   document.getElementById('offHoursCooldownInput').value = data.off_hours_cooldown_min ?? 60;
-
-   const replyEl = document.getElementById('offHoursReplyInput');
-   if (document.activeElement !== replyEl) {
-     const hasSavedReply = typeof data.off_hours_reply === 'string' && data.off_hours_reply.trim() !== '';
-     replyEl.value = hasSavedReply ? data.off_hours_reply : DEFAULT_OFF_HOURS_SAMPLE;
-   }
-
-   const selectedDays = String(data.off_hours_days ?? '0')
-     .split(',')
-     .map(s => s.trim())
-     .filter(s => s !== '');
-
-   document.querySelectorAll('#offHoursDaysGroup input[type="checkbox"]').forEach(cb => {
-     cb.checked = selectedDays.includes(cb.value);
-   });
-
-   updateOffHoursLiveBadge();
- }
-
- function updateOffHoursLiveBadge() {
-   const pill = document.getElementById('offHoursLiveStatusPill');
-   if (!pill) return;
-
-   const parts = new Intl.DateTimeFormat('en-US', {
-     timeZone: 'Asia/Makassar',
-     weekday: 'short',
-     hour: 'numeric',
-     minute: 'numeric',
-     hour12: false
-   }).formatToParts(new Date());
-
-   const dayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
-   const dayIdx = dayMap[parts.find(p => p.type === 'weekday')?.value || 'Mon'] ?? 1;
-   const h = Number(parts.find(p => p.type === 'hour')?.value || 0) % 24;
-   const m = Number(parts.find(p => p.type === 'minute')?.value || 0);
-   const nowMin = h * 60 + m;
-
-   const holidayDays = Array.from(document.querySelectorAll('#offHoursDaysGroup input:checked')).map(cb => Number(cb.value));
-   const [sh, sm] = (document.getElementById('offHoursStartInput').value || '18:00').split(':').map(Number);
-   const [eh, em] = (document.getElementById('offHoursEndInput').value || '08:00').split(':').map(Number);
-   const startMin = sh * 60 + sm;
-   const endMin = eh * 60 + em;
-
-   let isOff = holidayDays.includes(dayIdx);
-   if (!isOff && startMin !== endMin) {
-     isOff = startMin > endMin
-       ? (nowMin >= startMin || nowMin < endMin)
-       : (nowMin >= startMin && nowMin < endMin);
-   }
-
-   if (isOff) {
-     pill.classList.remove('ok');
-     pill.style.background = '#e0e7ff';
-     pill.style.color = '#3730a3';
-     pill.textContent = '🌙 Sedang Berlaku (Di Luar Jam Kerja)';
-   } else {
-     pill.classList.add('ok');
-     pill.style.background = '';
-     pill.style.color = '';
-     pill.textContent = '🟢 Siaga (Saat Ini Jam Kerja)';
-   }
- }
-
- function insertOffHoursSample() {
-   const replyEl = document.getElementById('offHoursReplyInput');
-   replyEl.value = DEFAULT_OFF_HOURS_SAMPLE;
-   replyEl.focus();
-   markOffHoursDirty();
- }
-
- document.getElementById('btnSaveOffHours').addEventListener('click', async () => {
-   const btn = document.getElementById('btnSaveOffHours');
-   const off_hours_start = document.getElementById('offHoursStartInput').value || '18:00';
-   const off_hours_end = document.getElementById('offHoursEndInput').value || '08:00';
-   const off_hours_cooldown_min = Math.max(0, Number(document.getElementById('offHoursCooldownInput').value ?? 60));
-   const off_hours_reply = document.getElementById('offHoursReplyInput').value.trim();
-   const off_hours_days = Array.from(document.querySelectorAll('#offHoursDaysGroup input:checked'))
-     .map(cb => cb.value)
-     .join(',');
-
-   btn.disabled = true;
-   btn.textContent = '⏳ Menyimpan...';
-   try {
-     const fullPayload = {
-       off_hours_enabled: true,
-       off_hours_start,
-       off_hours_end,
-       off_hours_days,
-       off_hours_mode: 'append',
-       off_hours_reply,
-       off_hours_pause_bot: false,
-       off_hours_cooldown_min,
-       updated_at: new Date().toISOString()
-     };
-
-     let { error } = await db
-       .from('wa_bot_config')
-       .update(fullPayload)
-       .eq('id', BOT_ID);
-
-     if (error && /column|schema cache/i.test(error.message || '')) {
-       const fallbackPayload = {
-         off_hours_start,
-         off_hours_end,
-         off_hours_days,
-         off_hours_reply,
-         off_hours_cooldown_min,
-         updated_at: new Date().toISOString()
-       };
-       const retryRes = await db
-         .from('wa_bot_config')
-         .update(fallbackPayload)
-         .eq('id', BOT_ID);
-       error = retryRes.error;
-     }
-
-     if (error) return alert('Gagal menyimpan pengaturan: ' + error.message);
-     clearOffHoursDirty();
-     updateOffHoursLiveBadge();
-     btn.textContent = '✓ Tersimpan';
-     setTimeout(() => { btn.textContent = '💾 Simpan Pengaturan Luar Jam Kerja'; }, 1800);
-   } finally {
-     btn.disabled = false;
-   }
- });
-
- async function loadRules() {
-   const { data } = await db.from('wa_rules').select('*').order('created_at', { ascending: false });
-   currentRules = data || [];
-   renderRules();
- }
-
- async function loadAdminQueue() {
-   const { data } = await db
-     .from('wa_admin_queue')
-     .select('*')
-     .gt('paused_until', new Date().toISOString())
-     .order('needs_reply', { ascending: false })
-     .order('updated_at', { ascending: false });
-
-   renderAdminQueue(data || []);
- }
-
- function renderAdminQueue(list) {
-   const card = document.getElementById('pausedCard');
-   const container = document.getElementById('pausedList');
-   const countBadge = document.getElementById('waitingCountBadge');
-   const tabChatBadge = document.getElementById('tabChatBadge');
-
-   if (!list || list.length === 0) {
-     card.classList.add('hidden');
-     container.innerHTML = '';
-     if (tabChatBadge) tabChatBadge.classList.add('hidden');
-     return;
-   }
-
-   const waitingCount = list.filter(u => u.needs_reply).length;
-   countBadge.textContent = `${waitingCount} Menunggu Balasan`;
-   countBadge.style.display = waitingCount > 0 ? 'inline-block' : 'none';
-
-   if (tabChatBadge) {
-     tabChatBadge.textContent = waitingCount;
-     tabChatBadge.classList.toggle('hidden', waitingCount === 0);
-   }
-
-   card.classList.remove('hidden');
-   container.innerHTML = list.map(u => {
-     const waUrl = u.phone ? `https://wa.me/${u.phone}` : null;
-     const phoneDisplay = waUrl
-       ? `<a href="${waUrl}" target="_blank" rel="noopener noreferrer" class="wa-phone-link">${escapeHtml(u.display_number)} ↗</a>`
-       : `<span style="color:#64748b; font-weight:600;">${escapeHtml(u.display_number)}</span>`;
-
-     const statusBadge = u.needs_reply
-       ? `<span class="badge-wait">Menunggu Balasan${u.unread_count > 1 ? ` (${u.unread_count} chat)` : ''}</span>`
-       : `<span class="badge-done">Sudah Dibalas Admin</span>`;
-
-     const openWaButton = waUrl
-       ? `<a href="${waUrl}" target="_blank" rel="noopener noreferrer" class="btn-link sm">💬 Balas di WA</a>`
-       : '';
-
-     const msgs = Array.isArray(u.recent_messages) && u.recent_messages.length > 0
-       ? u.recent_messages.map(m => `<div style="margin-bottom:3px;"><span style="color:#64748b;font-size:0.75rem;">[${escapeHtml(m.time)} WITA]</span> "${escapeHtml(m.text)}"</div>`).join('')
-       : `<div>"${escapeHtml(u.last_message)}"</div>`;
-
-     return `
-       <div class="paused-item ${u.needs_reply ? '' : 'replied'}">
-         <div style="flex: 1; min-width: 220px;">
-           <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
-             <strong>${escapeHtml(u.name)}</strong>
-             <span>(${phoneDisplay})</span>
-             ${statusBadge}
-           </div>
-           <div class="msg-preview">${msgs}</div>
-           <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">
-             Auto-reply dijeda s/d pukul ${formatWitaTime(u.paused_until)} WITA
-           </div>
-         </div>
-         <div style="display: flex; flex-direction: column; gap: 6px;">
-           ${openWaButton}
-           <button class="secondary sm" onclick="resumeBotForUser('${u.jid}')">Aktifkan Bot Lagi</button>
-         </div>
-       </div>
-     `;
-   }).join('');
- }
-
- async function resumeBotForUser(jid) {
-   await db.from('wa_admin_queue').delete().eq('jid', jid);
-   loadAdminQueue();
- }
-
- async function resumeBotForAllUsers() {
-   if (!confirm('Aktifkan kembali auto-reply bot untuk semua nomor yang sedang dijeda di Antrean Admin?')) {
-     return;
-   }
-
-   const btn = document.getElementById('btnResumeAllBots');
-   if (btn) {
-     btn.disabled = true;
-     btn.textContent = '⏳ Mengaktifkan...';
-   }
-
-   try {
-     const { error } = await db.from('wa_admin_queue').delete().neq('jid', '');
-     if (error) {
-       alert('Gagal mengaktifkan bot untuk semua nomor: ' + error.message);
-       return;
-     }
-     await loadAdminQueue();
-   } finally {
-     if (btn) {
-       btn.disabled = false;
-       btn.textContent = '✅ Aktifkan Bot Lagi (Semua Nomor)';
-     }
-   }
- }
-
- function renderChips(raw) {
-   return (raw || '').split(/[,\n]+/).map(k => k.trim()).filter(Boolean)
-     .map(k => `<span class="kw-chip">${escapeHtml(k)}</span>`).join('');
- }
-
- function renderRules() {
-   const container = document.getElementById('rulesList');
-   const refPill = document.getElementById('aiRulesRefCountPill');
-   if (refPill) {
-     refPill.textContent = `📚 ${currentRules.length} Aturan Auto-Reply`;
-   }
-
-   if (currentRules.length === 0) {
-     container.innerHTML = '<p style="color: #64748b; font-size: 0.9rem;">Belum ada aturan balasan.</p>';
-     return;
-   }
-
-   container.innerHTML = currentRules.map(r => {
-     let headerHtml = '';
-     if (r.is_default) {
-       headerHtml = `<div class="kw-row"><span class="badge-default">Balasan Default</span><span class="kw-chip">Semua Pesan Lain</span></div>`;
-     } else {
-       if (r.exact_keywords) headerHtml += `<div class="kw-row"><span class="badge-exact">Sama Persis</span> ${renderChips(r.exact_keywords)}</div>`;
-       if (r.contains_keywords) headerHtml += `<div class="kw-row"><span class="badge-contains">Mengandung Kata</span> ${renderChips(r.contains_keywords)}</div>`;
-       if (r.pause_bot) headerHtml += `<div class="kw-row"><span class="badge-admin">Alihkan ke Admin (Jeda Bot 60 Menit)</span></div>`;
-     }
-
-     return `
-       <div class="rule-item">
-         <div style="flex: 1;">
-           ${headerHtml}
-           <div style="white-space: pre-line; font-size: 0.88rem; color: #334155; background: #fff; padding: 8px; border-radius: 6px; border: 1px solid #e2e8f0; margin-top: 6px;">${escapeHtml(r.reply)}</div>
-         </div>
-         <div style="display: flex; flex-direction: column; gap: 6px;">
-           <button class="edit sm" onclick="editRule('${r.id}')">Edit</button>
-           <button class="danger sm" onclick="deleteRule('${r.id}')">Hapus</button>
-         </div>
-       </div>
-     `;
-   }).join('');
- }
-
- document.getElementById('toggleActive').addEventListener('change', async (e) => {
-   await db.from('wa_bot_config').update({ enabled: e.target.checked, updated_at: new Date().toISOString() }).eq('id', BOT_ID);
- });
-
- document.getElementById('isDefaultCheck').addEventListener('change', (e) => {
-   document.getElementById('keywordFieldsGrid').classList.toggle('hidden', e.target.checked);
-   document.getElementById('pauseBotLabel').classList.toggle('hidden', e.target.checked);
-   document.getElementById('followupCheckLabel').classList.toggle('hidden', e.target.checked);
-   if (e.target.checked) {
-     document.getElementById('pauseBotCheck').checked = false;
-     document.getElementById('expectsFollowupCheck').checked = false;
-     document.getElementById('followupFieldsBox').classList.add('hidden');
-   }
- });
-
- document.getElementById('expectsFollowupCheck').addEventListener('change', (e) => {
-   document.getElementById('followupFieldsBox').classList.toggle('hidden', !e.target.checked);
- });
-
- function cleanCommaList(raw) {
-   return (raw || '').split(/[,\n]+/).map(k => k.trim()).filter(Boolean).join(', ');
- }
-
- function resetForm() {
-   editingRuleId = null;
-   const formCard = document.getElementById('ruleFormCard');
-   if (formCard) formCard.classList.remove('editing-highlight');
-   document.getElementById('formTitle').textContent = 'Tambah Format Balasan Baru';
-   document.getElementById('isDefaultCheck').checked = false;
-   document.getElementById('pauseBotCheck').checked = false;
-   document.getElementById('expectsFollowupCheck').checked = false;
-   document.getElementById('keywordFieldsGrid').classList.remove('hidden');
-   document.getElementById('pauseBotLabel').classList.remove('hidden');
-   document.getElementById('followupCheckLabel').classList.remove('hidden');
-   document.getElementById('followupFieldsBox').classList.add('hidden');
-   document.getElementById('exactKeywordInput').value = '';
-   document.getElementById('containsKeywordInput').value = '';
-   document.getElementById('replyInput').value = '';
-   document.getElementById('followupKeywordsInput').value = '';
-   document.getElementById('followupReplyInput').value = '';
-   document.getElementById('followupPauseCheck').checked = true;
-   document.getElementById('btnAddRule').textContent = '+ Simpan Aturan Balasan';
-   document.getElementById('btnCancelEdit').classList.add('hidden');
- }
-
- document.getElementById('btnCancelEdit').addEventListener('click', resetForm);
-
- document.getElementById('btnAddRule').addEventListener('click', async () => {
-   const is_default = document.getElementById('isDefaultCheck').checked;
-   const pause_bot = is_default ? false : document.getElementById('pauseBotCheck').checked;
-   const exact_keywords = is_default ? '' : cleanCommaList(document.getElementById('exactKeywordInput').value);
-   const contains_keywords = is_default ? '' : cleanCommaList(document.getElementById('containsKeywordInput').value);
-   const reply = document.getElementById('replyInput').value.trim();
-
-   const expects_followup = is_default ? false : document.getElementById('expectsFollowupCheck').checked;
-   const followup_keywords = expects_followup ? cleanCommaList(document.getElementById('followupKeywordsInput').value) : '';
-   const followup_reply = expects_followup ? document.getElementById('followupReplyInput').value.trim() : '';
-   const followup_pause_bot = expects_followup ? document.getElementById('followupPauseCheck').checked : true;
-
-   if (!reply) return alert('Format pesan balasan wajib diisi.');
-   if (!is_default && !exact_keywords && !contains_keywords) {
-     return alert('Isi minimal salah satu kolom kata kunci, atau centang Balasan Default.');
-   }
-
-   if (is_default) {
-     await db.from('wa_rules').delete().eq('is_default', true).neq('id', editingRuleId || '');
-   }
-
-   await db.from('wa_rules').upsert({
-     id: editingRuleId || 'rule_' + Date.now(),
-     exact_keywords,
-     contains_keywords,
-     is_default,
-     pause_bot,
-     reply,
-     expects_followup,
-     followup_keywords,
-     followup_reply,
-     followup_pause_bot
-   });
-
-   resetForm();
-   loadRules();
- });
-
- function editRule(id) {
-   const r = currentRules.find(item => item.id === id);
-   if (!r) return;
-
-   switchTab('tab-autoreply', false);
-   editingRuleId = id;
-
-   const formCard = document.getElementById('ruleFormCard');
-   const replyEl = document.getElementById('replyInput');
-
-   document.getElementById('formTitle').textContent = 'Edit Aturan Balasan';
-   document.getElementById('isDefaultCheck').checked = r.is_default;
-   document.getElementById('pauseBotCheck').checked = r.pause_bot;
-   document.getElementById('keywordFieldsGrid').classList.toggle('hidden', r.is_default);
-   document.getElementById('pauseBotLabel').classList.toggle('hidden', r.is_default);
-   document.getElementById('followupCheckLabel').classList.toggle('hidden', r.is_default);
-
-   const hasFollowup = !r.is_default && Boolean(r.expects_followup);
-   document.getElementById('expectsFollowupCheck').checked = hasFollowup;
-   document.getElementById('followupFieldsBox').classList.toggle('hidden', !hasFollowup);
-   document.getElementById('followupKeywordsInput').value = r.followup_keywords || '';
-   document.getElementById('followupReplyInput').value = r.followup_reply || '';
-   document.getElementById('followupPauseCheck').checked = r.followup_pause_bot !== false;
-
-   document.getElementById('exactKeywordInput').value = r.exact_keywords || '';
-   document.getElementById('containsKeywordInput').value = r.contains_keywords || '';
-   replyEl.value = r.reply;
-   document.getElementById('btnAddRule').textContent = 'Simpan Perubahan';
-   document.getElementById('btnCancelEdit').classList.remove('hidden');
-
-   requestAnimationFrame(() => {
-     const navEl = document.getElementById('mainTabNav');
-     const navHeight = navEl ? navEl.offsetHeight + 20 : 80;
-     const targetEl = formCard || replyEl;
-     const targetTop = targetEl.getBoundingClientRect().top + window.scrollY - navHeight;
-
-     window.scrollTo({
-       top: Math.max(0, targetTop),
-       behavior: 'smooth'
-     });
-
-     if (formCard) {
-       formCard.classList.add('editing-highlight');
-     }
-
-     replyEl.focus({ preventScroll: true });
-     const textLen = replyEl.value.length;
-     replyEl.setSelectionRange(textLen, textLen);
-   });
- }
-
- async function deleteRule(id) {
-   if (editingRuleId === id) resetForm();
-   await db.from('wa_rules').delete().eq('id', id);
-   loadRules();
- }
-
- document.getElementById('btnLogout').addEventListener('click', async () => {
-   if (confirm('Putuskan tautan WhatsApp dari bot ini?')) {
-     await db.from('wa_bot_config').update({ status: 'logout_requested' }).eq('id', BOT_ID);
-   }
- });
-
- try {
-   const savedTab = localStorage.getItem(ACTIVE_TAB_KEY);
-   if (savedTab) switchTab(savedTab, false);
- } catch (_) {}
-
- let isFetchingLogs = false;
- let logsRefreshTimer = null;
-
- async function safeLoadLogs() {
-   if (isFetchingLogs) return;
-   isFetchingLogs = true;
-   try {
-     await loadLogs();
-   } finally {
-     isFetchingLogs = false;
-   }
- }
-
- function scheduleLogsRefresh() {
-   clearTimeout(logsRefreshTimer);
-   logsRefreshTimer = setTimeout(() => {
-     safeLoadLogs();
-   }, 1000);
- }
-
- loadBotConfig();
- loadRules();
- loadAdminQueue();
- loadContacts();
- loadBroadcasts(true);
- safeLoadLogs();
- triggerChatSync();
-
- db.channel('dashboard-live')
-   .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_bot_config' }, (payload) => {
-     loadBotConfig();
-     if (payload.new?.last_synced_at && payload.new.last_synced_at !== payload.old?.last_synced_at) {
-       scheduleContactsRefresh();
-       scheduleLogsRefresh();
-     }
-   })
-   .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_rules' }, loadRules)
-   .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_admin_queue' }, () => {
-     loadAdminQueue();
-     scheduleLogsRefresh();
-   })
-   .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_contacts' }, scheduleContactsRefresh)
-   .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_broadcasts' }, scheduleBroadcastsRefresh)
-   .on('postgres_changes', { event: '*', schema: 'public', table: 'wa_logs' }, () => {
-     scheduleLogsRefresh();
-   })
-   .subscribe((status) => {
-     const pill = document.getElementById('syncStatusPill');
-     if (status === 'SUBSCRIBED') {
-       if (pill) {
-         pill.classList.add('ok');
-         pill.textContent = `● Live Realtime Aktif (${formatWitaTime(Date.now())} WITA)`;
-       }
-       safeLoadLogs();
-       loadAdminQueue();
-     } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-       if (pill) {
-         pill.classList.remove('ok');
-         pill.textContent = '⚠️ Koneksi Realtime terputus, memuat ulang otomatis...';
-       }
-     }
-   });
-
- document.addEventListener('visibilitychange', () => {
-   if (!document.hidden) {
-     loadBotConfig();
-     loadAdminQueue();
-     safeLoadLogs();
-   }
- });
-
- setInterval(() => {
-   const chatPane = document.getElementById('tab-chat');
-   if (!document.hidden && chatPane && !chatPane.classList.contains('hidden')) {
-     safeLoadLogs();
-     loadAdminQueue();
-   }
- }, 30000);
+const STORAGE_URL_KEY = 'wa_local_server_url';
+const STORAGE_SECRET_KEY = 'wa_local_server_secret';
+const ACTIVE_TAB_KEY = 'wa_dashboard_active_tab';
+
+let SERVER_URL = localStorage.getItem(STORAGE_URL_KEY) || (window.location.hostname === 'localhost' ? 'http://localhost:3000' : '');
+let SERVER_SECRET = localStorage.getItem(STORAGE_SECRET_KEY) || 'muflihprint_rahasia_2026';
+
+document.getElementById('serverUrlInput').value = SERVER_URL;
+document.getElementById('serverSecretInput').value = SERVER_SECRET;
+
+function saveServerCredentials() {
+  SERVER_URL = document.getElementById('serverUrlInput').value.trim().replace(/\/+$/, '');
+  SERVER_SECRET = document.getElementById('serverSecretInput').value.trim();
+  localStorage.setItem(STORAGE_URL_KEY, SERVER_URL);
+  localStorage.setItem(STORAGE_SECRET_KEY, SERVER_SECRET);
+  pollState();
+  loadContacts(true);
+}
+
+async function apiFetch(endpoint, options = {}) {
+  if (!SERVER_URL) throw new Error('URL Server Laptop belum diisi.');
+  const headers = {
+    'Content-Type': 'application/json',
+    'x-api-key': SERVER_SECRET,
+    ...(options.headers || {})
+  };
+  const res = await fetch(`${SERVER_URL}${endpoint}`, { ...options, headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+let currentRules = [];
+let editingRuleId = null;
+let rawLogsCache = [];
+let contactsCache = [];
+let selectedChatNumber = null;
+let bcCampaignsCache = [];
+let activeHistoryBroadcastId = null;
+let bcHistoryRowsCache = [];
+let cachedReportMetrics = null;
+let isAiFormDirty = false;
+let isOffHoursDirty = false;
+
+function switchTab(tabId) {
+  const validTabs = ['tab-chat', 'tab-broadcast', 'tab-autoreply', 'tab-reports'];
+  const targetId = validTabs.includes(tabId) ? tabId : 'tab-chat';
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('hidden', p.id !== targetId));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === targetId));
+  try { localStorage.setItem(ACTIVE_TAB_KEY, targetId); } catch (_) {}
+
+  if (targetId === 'tab-broadcast' && contactsCache.length === 0) loadContacts(true);
+  if (targetId === 'tab-reports') loadReports();
+}
+
+function escapeHtml(str) {
+  return String(str || '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+}
+
+function formatWitaTime(isoOrMs) {
+  return new Date(isoOrMs).toLocaleTimeString('id-ID', { timeZone: 'Asia/Makassar', hour: '2-digit', minute: '2-digit' });
+}
+
+function toWitaDateKey(isoOrMs) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Makassar', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(new Date(isoOrMs));
+  return `${parts.find(p => p.type === 'year').value}-${parts.find(p => p.type === 'month').value}-${parts.find(p => p.type === 'day').value}`;
+}
+
+function formatWitaDateLabel(dateKey) {
+  const todayKey = toWitaDateKey(Date.now());
+  const yesterdayKey = toWitaDateKey(Date.now() - 86400000);
+  if (dateKey === todayKey) return 'Hari Ini';
+  if (dateKey === yesterdayKey) return 'Kemarin';
+  const [y, m, d] = dateKey.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 4, 0, 0)).toLocaleDateString('id-ID', {
+    timeZone: 'Asia/Makassar', weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'
+  });
+}
+
+function formatDuration(sec) {
+  if (sec === null || sec === undefined || isNaN(sec)) return '-';
+  const s = Math.round(sec);
+  if (s < 60) return `${s} detik`;
+  const m = Math.floor(s / 60);
+  const remS = s % 60;
+  if (m < 60) return remS > 0 ? `${m} mnt ${remS} dtk` : `${m} menit`;
+  const h = Math.floor(m / 60);
+  const remM = m % 60;
+  return remM > 0 ? `${h} jam ${remM} mnt` : `${h} jam`;
+}
+
+function normalizePhone(raw) {
+  const digits = String(raw || '').replace(/\D/g, '');
+  if (!digits) return null;
+  if (digits.startsWith('0')) return '62' + digits.slice(1);
+  if (digits.startsWith('8')) return '62' + digits;
+  return digits.length >= 9 && digits.length <= 15 ? digits : null;
+}
+
+function renderClientSpintax(template, sampleName = 'Andi') {
+  const spun = String(template || '').replace(/\{([^{}|]+\|[^{}]+)\}/g, (_, choicesStr) => {
+    const opts = choicesStr.split('|').map(s => s.trim()).filter(Boolean);
+    return opts.length ? opts[Math.floor(Math.random() * opts.length)] : '';
+  });
+  return spun.replace(/\{nama\}/gi, sampleName).replace(/\{nomor\}/gi, '6281234567890').replace(/\{salam\}/gi, 'Selamat siang');
+}
+
+// ============================================================================
+// POLLING UTAMA KE SERVER LAPTOP
+// ============================================================================
+async function pollState() {
+  const badge = document.getElementById('serverConnBadge');
+  if (!SERVER_URL) {
+    badge.style.color = '#fbbf24';
+    badge.textContent = 'Masukkan URL Tunnel Server Laptop di kanan →';
+    return;
+  }
+
+  try {
+    const data = await apiFetch('/api/state');
+    badge.style.color = '#4ade80';
+    badge.textContent = `Terhubung (${SERVER_URL})`;
+
+    const cfg = data.botConfig;
+    const qrSec = document.getElementById('qrSection');
+    const dashSec = document.getElementById('dashboardSection');
+
+    if (cfg.status === 'connected') {
+      qrSec.classList.add('hidden');
+      dashSec.classList.remove('hidden');
+    } else {
+      qrSec.classList.remove('hidden');
+      dashSec.classList.add('hidden');
+      if (cfg.qr_code) {
+        document.getElementById('qrImage').src = cfg.qr_code;
+        document.getElementById('statusText').textContent = 'Silakan scan QR Code di atas dengan WhatsApp HP Anda.';
+      } else {
+        document.getElementById('statusText').textContent = 'Menunggu QR Code dari Server Laptop...';
+      }
+    }
+
+    document.getElementById('toggleActive').checked = Boolean(cfg.enabled);
+    document.getElementById('contactCountPill').textContent = `${(data.contactsCount || 0).toLocaleString('id-ID')} Kontak`;
+    if (cfg.last_synced_at) {
+      document.getElementById('syncStatusPill').classList.add('ok');
+      document.getElementById('syncStatusPill').textContent = `SQLite Lokal • Sinkron ${formatWitaTime(cfg.last_synced_at)} WITA`;
+    }
+
+    currentRules = data.rules || [];
+    renderRulesList();
+    populateAiForm(cfg);
+    populateOffHoursForm(cfg);
+
+    renderAdminQueue(data.adminQueue || []);
+    rawLogsCache = data.recentLogs || [];
+    renderGroupedWhatsAppView();
+
+    bcCampaignsCache = data.broadcasts || [];
+    renderBroadcasts();
+  } catch (err) {
+    badge.style.color = '#f87171';
+    badge.textContent = `Gagal terhubung: ${err.message}`;
+  }
+}
+
+document.getElementById('toggleActive').addEventListener('change', async (e) => {
+  await apiFetch('/api/config', { method: 'POST', body: JSON.stringify({ enabled: e.target.checked }) });
+});
+
+document.getElementById('btnLogout').addEventListener('click', async () => {
+  if (!confirm('Putuskan tautan WhatsApp dari server laptop?')) return;
+  await apiFetch('/api/action/logout', { method: 'POST' });
+  pollState();
+});
+
+async function triggerChatSync() {
+  await apiFetch('/api/action/sync', { method: 'POST' });
+  pollState();
+}
+
+// ============================================================================
+// ANTREAN ADMIN & RIWAYAT CHAT PER NOMOR
+// ============================================================================
+function renderAdminQueue(queue) {
+  const card = document.getElementById('pausedCard');
+  const listEl = document.getElementById('pausedList');
+  const waitingCount = queue.filter(q => q.needs_reply).length;
+
+  const tabBadge = document.getElementById('tabChatBadge');
+  tabBadge.textContent = waitingCount;
+  tabBadge.classList.toggle('hidden', waitingCount === 0);
+
+  if (queue.length === 0) {
+    card.classList.add('hidden');
+    return;
+  }
+
+  card.classList.remove('hidden');
+  document.getElementById('waitingCountBadge').textContent = `${waitingCount} Menunggu`;
+
+  listEl.innerHTML = queue.map(item => {
+    const cleanPhone = (item.phone || '').replace(/\D/g, '');
+    const waUrl = cleanPhone ? `https://wa.me/${cleanPhone}` : '#';
+    const msgsHtml = (item.recent_messages || []).map(m => `<div><small style="color:#64748b;">[${escapeHtml(m.time)}]</small> ${escapeHtml(m.text)}</div>`).join('');
+    return `
+      <div class="paused-item ${item.needs_reply ? '' : 'replied'}">
+        <div style="flex:1; min-width:220px;">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <strong>${escapeHtml(item.name || item.display_number)}</strong>
+            <a href="${waUrl}" target="_blank" class="wa-phone-link">${escapeHtml(item.display_number)}</a>
+            ${item.needs_reply ? `<span class="badge-wait">Butuh Balasan (${item.unread_count || 1})</span>` : `<span class="badge-done">Sudah Dibalas Admin</span>`}
+          </div>
+          ${msgsHtml ? `<div class="msg-preview">${msgsHtml}</div>` : ''}
+          <small style="color:#64748b; display:block; margin-top:4px;">Bot dijeda hingga ${formatWitaTime(item.paused_until)} WITA</small>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          ${cleanPhone ? `<a href="${waUrl}" target="_blank" class="btn-link sm">💬 Balas di WA</a>` : ''}
+          <button type="button" class="secondary sm" onclick="resumeBotForUser('${escapeHtml(item.jid)}')">✅ Aktifkan Bot</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function resumeBotForUser(jid) {
+  await apiFetch('/api/queue/resume', { method: 'POST', body: JSON.stringify({ jid }) });
+  pollState();
+}
+
+async function resumeBotForAllUsers() {
+  if (!confirm('Aktifkan kembali bot untuk semua nomor di antrean admin?')) return;
+  await apiFetch('/api/queue/resume', { method: 'POST', body: JSON.stringify({ all: true }) });
+  pollState();
+}
+
+function renderGroupedWhatsAppView() {
+  const search = (document.getElementById('chatSearchInput').value || '').toLowerCase().trim();
+  const filter = document.getElementById('logFilterSelect').value;
+
+  const map = new Map();
+  for (const log of rawLogsCache) {
+    const num = log.sender_number || 'Unknown';
+    if (!map.has(num)) {
+      map.set(num, { number: num, name: log.sender_name || num, logs: [], latestAt: log.created_at });
+    }
+    const thread = map.get(num);
+    if (log.sender_name && !log.sender_name.startsWith('+') && log.sender_name !== num) {
+      thread.name = log.sender_name;
+    }
+    thread.logs.push(log);
+  }
+
+  let threads = Array.from(map.values()).filter(t => {
+    if (filter === 'bot_reply' && !t.logs.some(l => l.log_type === 'bot_reply')) return false;
+    if (filter === 'admin_direct' && !t.logs.some(l => l.log_type === 'admin_direct')) return false;
+    if (filter === 'incoming_only' && !t.logs.some(l => l.handed_over || l.log_type === 'customer_msg')) return false;
+    if (search) {
+      const hay = `${t.name} ${t.number} ${t.logs.map(l => `${l.incoming} ${l.reply}`).join(' ')}`.toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  const listEl = document.getElementById('waContactList');
+  if (threads.length === 0) {
+    listEl.innerHTML = '<div style="padding:16px; color:#64748b; font-size:0.85rem;">Belum ada riwayat percakapan.</div>';
+    return;
+  }
+
+  listEl.innerHTML = threads.map(t => {
+    const last = t.logs[0];
+    const preview = last.incoming || last.reply || '';
+    const initials = (t.name || 'WA').replace(/[^a-zA-Z0-9]/g, '').slice(0, 2).toUpperCase() || 'WA';
+    const isActive = selectedChatNumber === t.number;
+    return `
+      <div class="wa-contact-item ${isActive ? 'active' : ''}" onclick="openChatThread('${escapeHtml(t.number)}')">
+        <div class="wa-avatar" style="background:#16a34a;">${escapeHtml(initials)}</div>
+        <div class="wa-contact-meta">
+          <div class="wa-contact-top">
+            <span class="wa-contact-name">${escapeHtml(t.name)}</span>
+            <span class="wa-contact-time">${formatWitaTime(last.created_at)}</span>
+          </div>
+          <div class="wa-contact-bottom">
+            <span class="wa-contact-preview">${escapeHtml(preview)}</span>
+            <span class="wa-count-pill">${t.logs.length}</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  if (selectedChatNumber && map.has(selectedChatNumber)) {
+    renderChatMessages(map.get(selectedChatNumber));
+  }
+}
+
+function openChatThread(number) {
+  selectedChatNumber = number;
+  document.getElementById('waShell').classList.add('mobile-thread-open');
+  renderGroupedWhatsAppView();
+  scrollChatToBottom();
+}
+
+function closeMobileChat() {
+  document.getElementById('waShell').classList.remove('mobile-thread-open');
+}
+
+function scrollChatToBottom() {
+  const c = document.getElementById('waMessagesContainer');
+  c.scrollTop = c.scrollHeight;
+}
+
+function renderChatMessages(thread) {
+  document.getElementById('waChatHeader').classList.remove('hidden');
+  document.getElementById('waHeaderName').textContent = thread.name;
+  document.getElementById('waHeaderSub').textContent = thread.number;
+
+  const cleanPhone = thread.number.replace(/\D/g, '');
+  const linkEl = document.getElementById('waHeaderOpenLink');
+  if (cleanPhone) {
+    linkEl.href = `https://wa.me/${cleanPhone}`;
+    linkEl.classList.remove('hidden');
+  } else {
+    linkEl.classList.add('hidden');
+  }
+
+  const ordered = [...thread.logs].reverse();
+  let lastDate = '';
+  let html = '';
+
+  for (const log of ordered) {
+    const dk = toWitaDateKey(log.created_at);
+    if (dk !== lastDate) {
+      lastDate = dk;
+      html += `<div class="wa-date-divider">${escapeHtml(formatWitaDateLabel(dk))}</div>`;
+    }
+    if (log.incoming) {
+      html += `
+        <div class="wa-bubble in">
+          ${escapeHtml(log.incoming)}
+          <div class="wa-bubble-foot">${formatWitaTime(log.incoming_at || log.created_at)}</div>
+        </div>`;
+    }
+    if (log.reply) {
+      const isAdmin = log.log_type === 'admin_direct';
+      html += `
+        <div class="wa-bubble ${isAdmin ? 'out-admin' : 'out-bot'}">
+          <span class="wa-role-tag ${isAdmin ? 'admin' : 'bot'}">${isAdmin ? '👤 Admin' : '🤖 Auto-Reply / AI'}</span>
+          ${escapeHtml(log.reply)}
+          <div class="wa-bubble-foot">${formatWitaTime(log.created_at)}</div>
+        </div>`;
+    }
+  }
+
+  const container = document.getElementById('waMessagesContainer');
+  const nearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 120;
+  container.innerHTML = html;
+  if (nearBottom) scrollChatToBottom();
+}
+
+// ============================================================================
+// BROADCAST ANTI-SPAM
+// ============================================================================
+async function loadContacts(force = false) {
+  if (!force && contactsCache.length > 0) return;
+  const data = await apiFetch('/api/contacts');
+  contactsCache = data.contacts || [];
+  document.getElementById('contactCountPill').textContent = `${contactsCache.length.toLocaleString('id-ID')} Kontak`;
+}
+
+function insertBroadcastSample() {
+  document.getElementById('bcMessageInput').value =
+    '{Halo|Hai|Assalamualaikum} Kak *{nama}* 👋, {salam}!\n\n' +
+    '{Kabar gembira|Info spesial} dari *Muflih Print Makassar* — pemesanan cetak undangan, stiker, & dokumen PDF bisa dilakukan secara online (COD) di:\n' +
+    '👉 https://muflihprint.vercel.app\n\n' +
+    '{Silakan balas pesan ini jika ingin tanya-tanya dulu ya, Kak!|Langsung hubungi kami kapan saja jika butuh bantuan cetak ya, Kak!} 😊';
+  previewBroadcastSample();
+}
+
+function previewBroadcastSample() {
+  const tpl = document.getElementById('bcMessageInput').value.trim();
+  const box = document.getElementById('bcLivePreviewBox');
+  if (!tpl) return box.classList.add('hidden');
+  box.innerHTML =
+    `<strong>Contoh Variasi 1:</strong>\n${escapeHtml(renderClientSpintax(tpl, 'Budi'))}\n\n` +
+    `<strong>Contoh Variasi 2:</strong>\n${escapeHtml(renderClientSpintax(tpl, 'Siti'))}`;
+  box.classList.remove('hidden');
+}
+
+document.getElementById('btnStartBroadcast').addEventListener('click', async () => {
+  await loadContacts(true);
+  const title = document.getElementById('bcTitleInput').value.trim() || 'Broadcast Promo';
+  const targetMode = document.getElementById('bcTargetSelect').value;
+  const message_template = document.getElementById('bcMessageInput').value.trim();
+  const extraRaw = document.getElementById('bcExtraNumbersInput').value;
+
+  if (!message_template) return alert('Isi pesan broadcast terlebih dahulu.');
+
+  const recipientMap = new Map();
+  if (targetMode !== 'manual_only') {
+    for (const c of contactsCache) {
+      if (targetMode === 'chat_only' && c.source !== 'chat_history') continue;
+      if (targetMode === 'never_broadcasted' && c.last_broadcast_at) continue;
+      const p = normalizePhone(c.phone);
+      if (p) recipientMap.set(p, { phone: p, name: c.name || '' });
+    }
+  }
+  for (const p of extraRaw.split(/[\s,;\n]+/).map(normalizePhone).filter(Boolean)) {
+    if (!recipientMap.has(p)) recipientMap.set(p, { phone: p, name: '' });
+  }
+
+  const recipients = Array.from(recipientMap.values());
+  if (recipients.length === 0) return alert('Tidak ada nomor kontak sesuai kriteria.');
+
+  const daily_limit = Math.max(10, Number(document.getElementById('bcDailyLimitInput').value || 100));
+  if (!confirm(`Kirim broadcast "${title}" ke ${recipients.length} nomor?`)) return;
+
+  const res = await apiFetch('/api/broadcasts', {
+    method: 'POST',
+    body: JSON.stringify({
+      title,
+      message_template,
+      recipients,
+      min_delay_sec: Number(document.getElementById('bcMinDelayInput').value || 15),
+      max_delay_sec: Number(document.getElementById('bcMaxDelayInput').value || 35),
+      batch_size: Number(document.getElementById('bcBatchSizeInput').value || 15),
+      batch_pause_min: Number(document.getElementById('bcBatchPauseInput').value || 3),
+      daily_limit,
+      safe_hours_only: document.getElementById('bcSafeHoursCheck').checked
+    })
+  });
+
+  activeHistoryBroadcastId = res.id;
+  document.getElementById('bcTitleInput').value = '';
+  document.getElementById('bcExtraNumbersInput').value = '';
+  pollState();
+});
+
+function renderBroadcasts() {
+  const hasRunning = bcCampaignsCache.some(b => b.status === 'running');
+  document.getElementById('tabBroadcastBadge').classList.toggle('hidden', !hasRunning);
+  document.getElementById('bcCampaignCountPill').textContent = `${bcCampaignsCache.length} Broadcast`;
+
+  const listEl = document.getElementById('bcCampaignList');
+  if (bcCampaignsCache.length === 0) {
+    listEl.innerHTML = '<div style="padding:16px; color:#64748b; font-size:0.85rem;">Belum ada riwayat broadcast.</div>';
+    document.getElementById('bcHistoryTableBody').innerHTML = '';
+    return;
+  }
+
+  if (!activeHistoryBroadcastId || !bcCampaignsCache.some(b => b.id === activeHistoryBroadcastId)) {
+    activeHistoryBroadcastId = bcCampaignsCache[0].id;
+  }
+
+  listEl.innerHTML = bcCampaignsCache.map(bc => {
+    const done = (bc.sent_count || 0) + (bc.failed_count || 0);
+    const pct = bc.total_recipients > 0 ? Math.min(100, Math.round((done / bc.total_recipients) * 100)) : 0;
+    const isActive = bc.id === activeHistoryBroadcastId;
+    return `
+      <div class="bc-campaign-item ${isActive ? 'active' : ''}" onclick="selectBroadcastCampaign('${bc.id}')">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+          <strong style="font-size:0.88rem;">${escapeHtml(bc.title)}</strong>
+          <span class="bc-status-pill ${bc.status}">${bc.status}</span>
+        </div>
+        <div class="bc-progress-track"><div class="bc-progress-fill" style="width:${pct}%"></div></div>
+        <div style="font-size:0.75rem; color:#475569;">Terkirim: <strong>${bc.sent_count}</strong> / ${bc.total_recipients} (Gagal: ${bc.failed_count})</div>
+        <div style="font-size:0.72rem; color:#64748b; margin-top:3px;">${escapeHtml(bc.current_note || '')}</div>
+        <div style="display:flex; gap:5px; margin-top:8px;" onclick="event.stopPropagation()">
+          ${bc.status === 'running' ? `<button class="warn sm" onclick="changeBroadcastStatus('${bc.id}', 'paused')">Jeda</button>` : ''}
+          ${bc.status === 'paused' ? `<button class="sm" onclick="changeBroadcastStatus('${bc.id}', 'running')">Lanjut</button>` : ''}
+          ${bc.status === 'running' || bc.status === 'paused' ? `<button class="danger sm" onclick="changeBroadcastStatus('${bc.id}', 'cancelled')">Batal</button>` : ''}
+          <button class="secondary sm" onclick="deleteBroadcast('${bc.id}')">Hapus</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  loadBroadcastRecipients(activeHistoryBroadcastId);
+}
+
+async function selectBroadcastCampaign(id) {
+  activeHistoryBroadcastId = id;
+  renderBroadcasts();
+}
+
+async function loadBroadcastRecipients(id) {
+  const bc = bcCampaignsCache.find(b => b.id === id);
+  if (!bc) return;
+  document.getElementById('bcHistoryTitle').textContent = `📋 ${bc.title}`;
+  document.getElementById('bcHistorySubtitle').textContent = `Total ${bc.total_recipients} penerima • Status: ${bc.status.toUpperCase()}`;
+
+  const data = await apiFetch(`/api/broadcasts/${id}/recipients`);
+  bcHistoryRowsCache = data.recipients || [];
+  renderBroadcastHistoryTable();
+}
+
+function renderBroadcastHistoryTable() {
+  const statusFilter = document.getElementById('bcHistoryStatusFilter').value;
+  const search = (document.getElementById('bcHistorySearchInput').value || '').toLowerCase().trim();
+
+  const filtered = bcHistoryRowsCache.filter(r => {
+    if (statusFilter === 'sent' && r.status !== 'sent') return false;
+    if (statusFilter === 'failed' && r.status !== 'failed' && r.status !== 'skipped') return false;
+    if (statusFilter === 'pending' && r.status !== 'pending') return false;
+    if (search) {
+      const hay = `${r.name} ${r.phone} ${r.rendered_message || ''} ${r.error_msg || ''}`.toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  const tbody = document.getElementById('bcHistoryTableBody');
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="color:#64748b; text-align:center;">Tidak ada data penerima untuk filter ini.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(r => `
+    <tr>
+      <td>${r.sent_at ? formatWitaTime(r.sent_at) : '-'}</td>
+      <td><strong>${escapeHtml(r.name || '-')}</strong><br><small>+${escapeHtml(r.phone)}</small></td>
+      <td><span class="bc-status-pill ${r.status === 'sent' ? 'completed' : r.status === 'pending' ? 'paused' : 'cancelled'}">${r.status}</span></td>
+      <td style="white-space:pre-wrap; font-size:0.78rem;">${escapeHtml(r.rendered_message || r.error_msg || 'Menunggu antrean...')}</td>
+    </tr>
+  `).join('');
+}
+
+async function changeBroadcastStatus(id, status) {
+  await apiFetch(`/api/broadcasts/${id}/status`, { method: 'POST', body: JSON.stringify({ status }) });
+  pollState();
+}
+
+async function deleteBroadcast(id) {
+  if (!confirm('Hapus riwayat broadcast ini?')) return;
+  await apiFetch(`/api/broadcasts/${id}`, { method: 'DELETE' });
+  pollState();
+}
+
+// ============================================================================
+// PENGATURAN AI, LUAR JAM KERJA & ATURAN AUTO-REPLY
+// ============================================================================
+function markAiFormDirty() {
+  isAiFormDirty = true;
+  document.getElementById('aiUnsavedHint').style.display = 'inline';
+}
+
+function updateAiLiveBadge() {
+  const enabled = document.getElementById('aiEnabledCheck').checked;
+  document.getElementById('aiConfigFieldsBox').classList.toggle('hidden', !enabled);
+  const pill = document.getElementById('aiLiveStatusPill');
+  const desc = document.getElementById('aiModeDescriptionBox');
+  if (enabled) {
+    pill.classList.add('ai');
+    pill.textContent = '🧠 AI Aktif';
+    desc.classList.remove('off');
+    desc.innerHTML = '<strong>Mode AI Aktif:</strong> Semua balasan dijawab otomatis oleh Google Gemini berdasarkan referensi daftar pesan auto-reply di bawah.';
+  } else {
+    pill.classList.remove('ai');
+    pill.textContent = '⚪ AI Nonaktif';
+    desc.classList.add('off');
+    desc.innerHTML = '<strong>Mode AI Nonaktif:</strong> Balasan dikirim berdasarkan pencocokan kata kunci di bawah.';
+  }
+}
+
+function populateAiForm(cfg) {
+  document.getElementById('aiRulesRefCountPill').textContent = `📚 ${currentRules.length} Aturan Auto-Reply`;
+  if (isAiFormDirty) return updateAiLiveBadge();
+  document.getElementById('aiEnabledCheck').checked = Boolean(cfg.ai_enabled);
+  if (cfg.ai_model) document.getElementById('aiModelSelect').value = cfg.ai_model;
+  if (document.activeElement !== document.getElementById('aiSystemPromptInput')) {
+    document.getElementById('aiSystemPromptInput').value = cfg.ai_system_prompt || '';
+  }
+  updateAiLiveBadge();
+}
+
+function insertAiPromptSample() {
+  document.getElementById('aiSystemPromptInput').value =
+    'Gunakan gaya bahasa yang ramah, sopan, singkat, dan jelas dengan sapaan "Kak".\n' +
+    'Jawablah berdasarkan daftar pesan auto-reply yang tersedia. Jangan mengarang harga.\n' +
+    'Jika pelanggan mengirim file cetak, revisi desain, atau ingin bicara dengan admin, akhiri balasan dengan [ALIHKAN_ADMIN].';
+  markAiFormDirty();
+}
+
+document.getElementById('btnSaveAiConfig').addEventListener('click', async () => {
+  const ai_enabled = document.getElementById('aiEnabledCheck').checked;
+  await apiFetch('/api/config', {
+    method: 'POST',
+    body: JSON.stringify({
+      ai_enabled,
+      ai_mode: ai_enabled ? 'ai_only' : 'manual',
+      ai_model: document.getElementById('aiModelSelect').value,
+      ai_system_prompt: document.getElementById('aiSystemPromptInput').value.trim()
+    })
+  });
+  isAiFormDirty = false;
+  document.getElementById('aiUnsavedHint').style.display = 'none';
+  alert('Pengaturan AI berhasil disimpan ke database laptop!');
+});
+
+function markOffHoursDirty() {
+  isOffHoursDirty = true;
+  document.getElementById('offHoursUnsavedHint').style.display = 'inline';
+}
+
+function populateOffHoursForm(cfg) {
+  if (isOffHoursDirty) return;
+  document.getElementById('offHoursStartInput').value = cfg.off_hours_start || '18:00';
+  document.getElementById('offHoursEndInput').value = cfg.off_hours_end || '08:00';
+  document.getElementById('offHoursCooldownInput').value = cfg.off_hours_cooldown_min ?? 60;
+  const days = String(cfg.off_hours_days ?? '0').split(',').map(s => s.trim());
+  document.querySelectorAll('#offHoursDaysGroup input[type="checkbox"]').forEach(cb => {
+    cb.checked = days.includes(cb.value);
+  });
+  if (document.activeElement !== document.getElementById('offHoursReplyInput')) {
+    document.getElementById('offHoursReplyInput').value = cfg.off_hours_reply || '';
+  }
+}
+
+function insertOffHoursSample() {
+  document.getElementById('offHoursReplyInput').value =
+    '──────────────\n🌙 *Info Jam Tutup:*\nSaat ini *Muflih Print* sedang tutup (Senin – Sabtu, 08.00 – 18.00 WITA, Ahad Libur). Pesan tetap kami terima dan akan dibalas saat jam buka. 🙏';
+  markOffHoursDirty();
+}
+
+document.getElementById('btnSaveOffHours').addEventListener('click', async () => {
+  const selectedDays = Array.from(document.querySelectorAll('#offHoursDaysGroup input:checked')).map(cb => cb.value).join(',');
+  await apiFetch('/api/config', {
+    method: 'POST',
+    body: JSON.stringify({
+      off_hours_start: document.getElementById('offHoursStartInput').value,
+      off_hours_end: document.getElementById('offHoursEndInput').value,
+      off_hours_cooldown_min: Number(document.getElementById('offHoursCooldownInput').value || 60),
+      off_hours_days: selectedDays,
+      off_hours_reply: document.getElementById('offHoursReplyInput').value.trim()
+    })
+  });
+  isOffHoursDirty = false;
+  document.getElementById('offHoursUnsavedHint').style.display = 'none';
+  alert('Pengaturan luar jam kerja tersimpan!');
+});
+
+function toggleRuleFormVisibility() {
+  const isDef = document.getElementById('isDefaultCheck').checked;
+  document.getElementById('keywordFieldsGrid').classList.toggle('hidden', isDef);
+  document.getElementById('pauseBotLabel').classList.toggle('hidden', isDef);
+  document.getElementById('followupCheckLabel').classList.toggle('hidden', isDef);
+  const expFollow = !isDef && document.getElementById('expectsFollowupCheck').checked;
+  document.getElementById('followupFieldsBox').classList.toggle('hidden', !expFollow);
+}
+
+function resetRuleForm() {
+  editingRuleId = null;
+  document.getElementById('formTitle').textContent = 'Tambah Format Balasan Baru';
+  document.getElementById('btnAddRule').textContent = '+ Simpan Aturan Balasan';
+  document.getElementById('btnCancelEdit').classList.add('hidden');
+  document.getElementById('ruleFormCard').classList.remove('editing-highlight');
+  document.getElementById('isDefaultCheck').checked = false;
+  document.getElementById('exactKeywordInput').value = '';
+  document.getElementById('containsKeywordInput').value = '';
+  document.getElementById('pauseBotCheck').checked = false;
+  document.getElementById('replyInput').value = '';
+  document.getElementById('expectsFollowupCheck').checked = false;
+  document.getElementById('followupKeywordsInput').value = '';
+  document.getElementById('followupReplyInput').value = '';
+  document.getElementById('followupPauseCheck').checked = true;
+  toggleRuleFormVisibility();
+}
+
+function startEditRule(id) {
+  const r = currentRules.find(item => item.id === id);
+  if (!r) return;
+  editingRuleId = id;
+  document.getElementById('formTitle').textContent = 'Edit Format Balasan';
+  document.getElementById('btnAddRule').textContent = '💾 Simpan Perubahan';
+  document.getElementById('btnCancelEdit').classList.remove('hidden');
+  document.getElementById('ruleFormCard').classList.add('editing-highlight');
+
+  document.getElementById('isDefaultCheck').checked = Boolean(r.is_default);
+  document.getElementById('exactKeywordInput').value = r.exact_keywords || '';
+  document.getElementById('containsKeywordInput').value = r.contains_keywords || '';
+  document.getElementById('pauseBotCheck').checked = Boolean(r.pause_bot);
+  document.getElementById('replyInput').value = r.reply || '';
+  document.getElementById('expectsFollowupCheck').checked = Boolean(r.expects_followup);
+  document.getElementById('followupKeywordsInput').value = r.followup_keywords || '';
+  document.getElementById('followupReplyInput').value = r.followup_reply || '';
+  document.getElementById('followupPauseCheck').checked = r.followup_pause_bot !== false;
+  toggleRuleFormVisibility();
+  document.getElementById('ruleFormCard').scrollIntoView({ behavior: 'smooth' });
+}
+
+document.getElementById('btnAddRule').addEventListener('click', async () => {
+  const payload = {
+    is_default: document.getElementById('isDefaultCheck').checked,
+    exact_keywords: document.getElementById('exactKeywordInput').value.trim(),
+    contains_keywords: document.getElementById('containsKeywordInput').value.trim(),
+    pause_bot: document.getElementById('pauseBotCheck').checked,
+    reply: document.getElementById('replyInput').value.trim(),
+    expects_followup: document.getElementById('expectsFollowupCheck').checked,
+    followup_keywords: document.getElementById('followupKeywordsInput').value.trim(),
+    followup_reply: document.getElementById('followupReplyInput').value.trim(),
+    followup_pause_bot: document.getElementById('followupPauseCheck').checked
+  };
+
+  if (!payload.reply) return alert('Isi pesan balasan tidak boleh kosong.');
+
+  if (editingRuleId) {
+    await apiFetch(`/api/rules/${editingRuleId}`, { method: 'PUT', body: JSON.stringify(payload) });
+  } else {
+    await apiFetch('/api/rules', { method: 'POST', body: JSON.stringify(payload) });
+  }
+
+  resetRuleForm();
+  pollState();
+});
+
+async function deleteRule(id) {
+  if (!confirm('Hapus aturan balasan ini?')) return;
+  await apiFetch(`/api/rules/${id}`, { method: 'DELETE' });
+  pollState();
+}
+
+function renderRulesList() {
+  const listEl = document.getElementById('rulesList');
+  if (currentRules.length === 0) {
+    listEl.innerHTML = '<div style="color:#64748b;">Belum ada aturan balasan.</div>';
+    return;
+  }
+
+  listEl.innerHTML = currentRules.map(r => `
+    <div class="rule-item">
+      <div style="flex:1;">
+        <div class="kw-row">
+          ${r.is_default ? '<span class="badge-default">Default / Info Umum</span>' : ''}
+          ${r.exact_keywords ? `<span class="badge-exact">Persis:</span> <span class="kw-chip">${escapeHtml(r.exact_keywords)}</span>` : ''}
+          ${r.contains_keywords ? `<span class="badge-contains">Mengandung:</span> <span class="kw-chip">${escapeHtml(r.contains_keywords)}</span>` : ''}
+          ${r.pause_bot ? '<span class="badge-admin">Alihkan Admin</span>' : ''}
+        </div>
+        <div style="white-space:pre-wrap; font-size:0.86rem; color:#1e293b; margin-top:6px;">${escapeHtml(r.reply)}</div>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button class="edit sm" onclick="startEditRule('${r.id}')">Edit</button>
+        <button class="danger sm" onclick="deleteRule('${r.id}')">Hapus</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ============================================================================
+// LAPORAN CHAT MASUK & DURASI BALAS
+// ============================================================================
+async function loadReports() {
+  const days = Number(document.getElementById('reportPeriodSelect').value || 7);
+  const data = await apiFetch(`/api/reports?days=${days}`);
+  const logs = data.logs || [];
+  const firstSeenMap = new Map((data.firstSeenRows || []).map(r => [r.sender_number, toWitaDateKey(r.first_at)]));
+
+  const validDateKeys = new Set();
+  for (let i = 0; i < days; i++) {
+    validDateKeys.add(toWitaDateKey(Date.now() - i * 86400000));
+  }
+
+  const dailyMap = new Map();
+  for (const dk of validDateKeys) {
+    dailyMap.set(dk, { dateKey: dk, numbers: new Set(), newContacts: new Set(), totalIncoming: 0, adminHandover: 0 });
+  }
+
+  const pendingIncomingByNumber = new Map();
+  const adminResponseSecs = [];
+  const botResponseSecs = [];
+
+  for (const log of logs) {
+    const dk = toWitaDateKey(log.created_at);
+    const num = log.sender_number;
+
+    if (log.incoming && log.log_type !== 'admin_direct') {
+      pendingIncomingByNumber.set(num, new Date(log.incoming_at || log.created_at).getTime());
+      if (dailyMap.has(dk)) {
+        const d = dailyMap.get(dk);
+        d.numbers.add(num);
+        d.totalIncoming++;
+        if (log.handed_over) d.adminHandover++;
+        if (firstSeenMap.get(num) === dk) d.newContacts.add(num);
+      }
+    }
+
+    if (log.reply && pendingIncomingByNumber.has(num)) {
+      const diffSec = Math.max(0, (new Date(log.created_at).getTime() - pendingIncomingByNumber.get(num)) / 1000);
+      if (diffSec <= 24 * 3600) {
+        if (log.log_type === 'admin_direct') adminResponseSecs.push(diffSec);
+        else if (log.log_type === 'bot_reply') botResponseSecs.push(diffSec);
+      }
+      pendingIncomingByNumber.delete(num);
+    }
+  }
+
+  const dailyRows = Array.from(dailyMap.values()).sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+  const uniqueNumbers = new Set();
+  const newNumbers = new Set();
+  let totalIncoming = 0;
+  let totalAdminReq = 0;
+
+  for (const r of dailyRows) {
+    r.numbers.forEach(n => uniqueNumbers.add(n));
+    r.newContacts.forEach(n => newNumbers.add(n));
+    totalIncoming += r.totalIncoming;
+    totalAdminReq += r.adminHandover;
+  }
+
+  const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+
+  document.getElementById('kpiUniqueChats').textContent = uniqueNumbers.size;
+  document.getElementById('kpiNewContactsSub').textContent = `${newNumbers.size} kontak baru pertama kali`;
+  document.getElementById('kpiTotalIncoming').textContent = totalIncoming;
+  document.getElementById('kpiAdminReqSub').textContent = `${totalAdminReq} butuh admin`;
+  document.getElementById('kpiAvgAdminTime').textContent = formatDuration(avg(adminResponseSecs));
+  document.getElementById('kpiAdminCountSub').textContent = `${adminResponseSecs.length} balasan admin`;
+  document.getElementById('kpiAvgBotTime').textContent = formatDuration(avg(botResponseSecs));
+  document.getElementById('kpiBotCountSub').textContent = `${botResponseSecs.length} balasan otomatis`;
+
+  cachedReportMetrics = { adminResponseSecs, allResponseSecs: [...adminResponseSecs, ...botResponseSecs] };
+  renderDurationBuckets();
+
+  document.getElementById('dailyReportBody').innerHTML = dailyRows.map(r => `
+    <tr>
+      <td>${escapeHtml(formatWitaDateLabel(r.dateKey))}</td>
+      <td class="num-col">${r.numbers.size}</td>
+      <td class="num-col">${r.newContacts.size}</td>
+      <td class="num-col">${r.totalIncoming}</td>
+      <td class="num-col">${r.adminHandover}</td>
+    </tr>
+  `).join('');
+}
+
+function renderDurationBuckets() {
+  if (!cachedReportMetrics) return;
+  const scope = document.getElementById('durationScopeSelect').value;
+  const list = scope === 'admin' ? cachedReportMetrics.adminResponseSecs : cachedReportMetrics.allResponseSecs;
+  const total = list.length || 1;
+
+  const buckets = [
+    { label: '< 1 Menit (Sangat Cepat)', count: list.filter(s => s < 60).length, color: '#16a34a' },
+    { label: '1 – 5 Menit (Cepat)', count: list.filter(s => s >= 60 && s < 300).length, color: '#2563eb' },
+    { label: '5 – 30 Menit (Normal)', count: list.filter(s => s >= 300 && s < 1800).length, color: '#d97706' },
+    { label: '> 30 Menit (Lambat)', count: list.filter(s => s >= 1800).length, color: '#dc2626' }
+  ];
+
+  document.getElementById('durationBucketsBox').innerHTML = buckets.map(b => {
+    const pct = list.length ? Math.round((b.count / total) * 100) : 0;
+    return `
+      <div class="duration-row">
+        <div class="duration-meta"><span>${b.label}</span><span>${b.count} (${pct}%)</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%; background:${b.color};"></div></div>
+      </div>`;
+  }).join('');
+}
+
+// Inisialisasi awal
+const savedTab = localStorage.getItem(ACTIVE_TAB_KEY);
+if (savedTab) switchTab(savedTab);
+pollState();
+setInterval(pollState, 3000);
 </script>
 </body>
 </html>
