@@ -264,8 +264,11 @@
  <div id="tab-chat" class="tab-pane">
    <div id="pausedCard" class="card hidden" style="border-color: #fb923c;">
      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
-       <h3 style="margin: 0; color: #c2410c;">📥 Antrean Chat Admin <span id="waitingCountBadge" class="badge-wait" style="margin-left: 6px;">0 Menunggu</span></h3>
-       <small style="color: #64748b;">Klik nomor untuk membuka chat langsung di WhatsApp</small>
+       <div>
+         <h3 style="margin: 0; color: #c2410c;">📥 Antrean Chat Admin <span id="waitingCountBadge" class="badge-wait" style="margin-left: 6px;">0 Menunggu</span></h3>
+         <small style="color: #64748b;">Klik nomor untuk membuka chat langsung di WhatsApp</small>
+       </div>
+       <button type="button" id="btnResumeAllBots" class="sm" onclick="resumeBotForAllUsers()">✅ Aktifkan Bot Lagi (Semua Nomor)</button>
      </div>
      <div id="pausedList"></div>
    </div>
@@ -700,9 +703,10 @@
 </div>
 
 <script>
- const SUPABASE_URL = 'https://zqxeoveanevsvynptckm.supabase.co';
+  const SUPABASE_URL = 'https://zqxeoveanevsvynptckm.supabase.co';
  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxeGVvdmVhbmV2c3Z5bnB0Y2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNzUzODEsImV4cCI6MjA4OTg1MTM4MX0.eeIaytpW1wtWPJc2FbhufkDkhONUt9yypTZU4dTVmsM';
  const BOT_ID = 'bot_utama';
+
  const ACTIVE_TAB_KEY = 'wa_dashboard_active_tab';
 
  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -1322,7 +1326,7 @@
    loadBroadcasts(false);
  }
 
- // --- Sinkronisasi & Chat View (Hemat Disk IO: 300 baris & kolom spesifik) ---
+ // --- Sinkronisasi & Chat View ---
  async function triggerChatSync() {
    const pill = document.getElementById('syncStatusPill');
    if (pill) {
@@ -2181,6 +2185,32 @@
  async function resumeBotForUser(jid) {
    await db.from('wa_admin_queue').delete().eq('jid', jid);
    loadAdminQueue();
+ }
+
+ async function resumeBotForAllUsers() {
+   if (!confirm('Aktifkan kembali auto-reply bot untuk semua nomor yang sedang dijeda di Antrean Admin?')) {
+     return;
+   }
+
+   const btn = document.getElementById('btnResumeAllBots');
+   if (btn) {
+     btn.disabled = true;
+     btn.textContent = '⏳ Mengaktifkan...';
+   }
+
+   try {
+     const { error } = await db.from('wa_admin_queue').delete().neq('jid', '');
+     if (error) {
+       alert('Gagal mengaktifkan bot untuk semua nomor: ' + error.message);
+       return;
+     }
+     await loadAdminQueue();
+   } finally {
+     if (btn) {
+       btn.disabled = false;
+       btn.textContent = '✅ Aktifkan Bot Lagi (Semua Nomor)';
+     }
+   }
  }
 
  function renderChips(raw) {
