@@ -99,14 +99,6 @@
    flex-wrap: wrap;
    gap: 10px;
  }
- .server-bar input {
-   background: #1e293b;
-   border: 1px solid #334155;
-   color: #fff;
-   padding: 7px 10px;
-   margin-top: 0;
-   font-size: 0.84rem;
- }
 
  .top-app-bar {
    background: #fff;
@@ -396,15 +388,11 @@
 <body>
 
 <div class="server-bar">
-  <div style="font-size: 0.82rem;">
+  <div style="font-size: 0.84rem;">
     <strong>🖥️ Koneksi Server Laptop:</strong>
     <span id="serverConnBadge" style="color: #fbbf24; margin-left: 6px;">Menghubungkan...</span>
   </div>
-  <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; flex: 1; max-width: 620px;">
-    <input type="text" id="serverUrlInput" placeholder="URL Server (contoh: https://xxx.trycloudflare.com)" style="flex: 2; min-width: 210px;" />
-    <input type="password" id="serverSecretInput" placeholder="API Secret" style="flex: 1; min-width: 120px;" />
-    <button type="button" class="sm" onclick="saveServerCredentials()">Simpan</button>
-  </div>
+  <button type="button" class="secondary sm" onclick="syncServerUrlFromSupabase().then(pollState)">🔄 Segarkan Koneksi</button>
 </div>
 
 <div id="qrSection" class="card" style="text-align: center;">
@@ -1009,19 +997,29 @@ const STORAGE_URL_KEY = 'wa_local_server_url';
 const STORAGE_SECRET_KEY = 'wa_local_server_secret';
 const ACTIVE_TAB_KEY = 'wa_dashboard_active_tab';
 
+const SUPABASE_ENDPOINT_URL = 'https://zqxeoveanevsvynptckm.supabase.co/rest/v1/wa_server_endpoint?id=eq.utama&select=tunnel_url';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxeGVvdmVhbmV2c3Z5bnB0Y2ttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNzUzODEsImV4cCI6MjA4OTg1MTM4MX0.eeIaytpW1wtWPJc2FbhufkDkhONUt9yypTZU4dTVmsM';
+
 let SERVER_URL = localStorage.getItem(STORAGE_URL_KEY) || (window.location.hostname === 'localhost' ? 'http://localhost:3000' : '');
 let SERVER_SECRET = localStorage.getItem(STORAGE_SECRET_KEY) || 'muflihprint_rahasia_2026';
 
-document.getElementById('serverUrlInput').value = SERVER_URL;
-document.getElementById('serverSecretInput').value = SERVER_SECRET;
-
-function saveServerCredentials() {
-  SERVER_URL = document.getElementById('serverUrlInput').value.trim().replace(/\/+$/, '');
-  SERVER_SECRET = document.getElementById('serverSecretInput').value.trim();
-  localStorage.setItem(STORAGE_URL_KEY, SERVER_URL);
-  localStorage.setItem(STORAGE_SECRET_KEY, SERVER_SECRET);
-  pollState();
-  loadContacts(true);
+async function syncServerUrlFromSupabase() {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') return;
+  try {
+    const res = await fetch(SUPABASE_ENDPOINT_URL, {
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+    if (!res.ok) return;
+    const rows = await res.json();
+    const latestUrl = String(rows?.[0]?.tunnel_url || '').trim().replace(/\/+$/, '');
+    if (latestUrl && latestUrl !== SERVER_URL) {
+      SERVER_URL = latestUrl;
+      localStorage.setItem(STORAGE_URL_KEY, SERVER_URL);
+    }
+  } catch (_) {}
 }
 
 async function apiFetch(endpoint, options = {}) {
@@ -1125,7 +1123,8 @@ async function pollState() {
   const badge = document.getElementById('serverConnBadge');
   if (!SERVER_URL) {
     badge.style.color = '#fbbf24';
-    badge.textContent = 'Masukkan URL Tunnel Server Laptop di kanan →';
+    badge.textContent = 'Mengambil alamat server dari Supabase...';
+    syncServerUrlFromSupabase();
     return;
   }
 
@@ -1178,6 +1177,7 @@ async function pollState() {
   } catch (err) {
     badge.style.color = '#f87171';
     badge.textContent = `Gagal terhubung: ${err.message}`;
+    syncServerUrlFromSupabase();
   }
 }
 
@@ -2352,7 +2352,10 @@ function renderDurationBuckets() {
 // Inisialisasi awal
 const savedTab = localStorage.getItem(ACTIVE_TAB_KEY);
 if (savedTab) switchTab(savedTab);
-pollState();
+
+syncServerUrlFromSupabase().finally(() => {
+  pollState();
+});
 setInterval(pollState, 3000);
 </script>
 </body>
