@@ -639,12 +639,7 @@
          </select>
        </div>
 
-       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 0.75rem;">
-         <label for="aiSystemPromptInput" style="margin: 0;">Aturan Dasar & Gaya Bahasa AI</label>
-         <button type="button" class="secondary sm" onclick="fillDefaultSystemPrompt()">
-           🔄 Reset Template Aturan
-         </button>
-       </div>
+       <label for="aiSystemPromptInput">Aturan Dasar & Gaya Bahasa AI</label>
        <textarea
          id="aiSystemPromptInput"
          rows="10"
@@ -653,12 +648,7 @@
          placeholder="Aturan perilaku AI, cara baca katalog harga, dan syarat pengalihan ke admin..."
        ></textarea>
 
-       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 0.75rem;">
-         <label for="aiBusinessKnowledgeInput" style="margin: 0;">Pengetahuan & Aturan Khusus Bisnis (Alamat, Promo, S&amp;K)</label>
-         <button type="button" class="secondary sm" onclick="fillDefaultBusinessKnowledge()">
-           🔄 Reset Template Bisnis
-         </button>
-       </div>
+       <label for="aiBusinessKnowledgeInput">Pengetahuan & Aturan Khusus Bisnis (Alamat, Promo, S&amp;K)</label>
        <textarea
          id="aiBusinessKnowledgeInput"
          rows="9"
@@ -666,6 +656,7 @@
          oninput="markAiFormDirty()"
          placeholder="Masukkan rincian promo cetak, syarat undangan, alamat toko, jam buka, nomor rekening..."
        ></textarea>
+       
        <div class="var-hint">
          Edit bagian ini kapan saja dari browser untuk memperbarui promo, S&amp;K, atau info toko tanpa menyentuh kode server.
        </div>
