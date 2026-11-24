@@ -167,6 +167,41 @@
  .var-hint { font-size: 0.8rem; color: #64748b; margin-top: 4px; }
  code { background: #f1f5f9; padding: 2px 5px; border-radius: 4px; }
 
+ /* DAFTAR KONTAK PENGECUALIAN (READ-ONLY) */
+ .excluded-list-box {
+   border: 1px solid #e2e8f0;
+   background: #f8fafc;
+   border-radius: 10px;
+   padding: 10px;
+   max-height: 310px;
+   overflow-y: auto;
+   margin-top: 8px;
+ }
+ .excluded-item-row {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 10px;
+   background: #ffffff;
+   border: 1px solid #e2e8f0;
+   border-radius: 8px;
+   padding: 8px 12px;
+   margin-bottom: 7px;
+ }
+ .excluded-item-row:last-child {
+   margin-bottom: 0;
+ }
+ .excluded-manual-bar {
+   display: flex;
+   gap: 8px;
+   align-items: center;
+   margin-top: 10px;
+ }
+ .excluded-manual-bar input {
+   margin-top: 0;
+   flex: 1;
+ }
+
  .wa-shell { display: grid; grid-template-columns: 300px 1fr; height: 540px; border: 1px solid #cbd5e1; border-radius: 12px; overflow: hidden; background: #fff; }
  .wa-sidebar { display: flex; flex-direction: column; border-right: 1px solid #e2e8f0; background: #ffffff; min-height: 0; }
  .wa-search-bar { padding: 8px 10px; background: #f0f2f5; border-bottom: 1px solid #e2e8f0; }
@@ -652,22 +687,22 @@
    <div class="card" style="border-color: #fca5a5;">
      <div class="header-bar" style="margin-bottom: 0.75rem;">
        <div>
-         <h2 style="margin: 0;">🚫 Daftar Nomor WA Dikecualikan (Bypass Auto-Reply)</h2>
-         <small style="color: #64748b;">Nomor pada daftar ini tidak akan pernah dibalas otomatis oleh bot maupun AI</small>
+         <h2 style="margin: 0;">🚫 Daftar Kontak WA Dikecualikan (Bypass Auto-Reply)</h2>
+         <small style="color: #64748b;">Kontak pada daftar ini tidak dapat diedit manual dan tidak akan pernah dibalas otomatis oleh bot maupun AI</small>
        </div>
-       <span id="excludedCountPill" class="sync-pill">0 Nomor</span>
+       <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+         <span id="excludedCountPill" class="sync-pill danger">0 Kontak</span>
+         <button type="button" class="secondary sm" onclick="openExcludedContactModal()">👥 Pilih dari Daftar Kontak</button>
+       </div>
      </div>
 
-     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
-       <label for="excludedNumbersInput" style="margin: 0;">Daftar Nomor WA (Pisahkan dengan koma atau baris baru)</label>
-       <button type="button" class="secondary sm" onclick="openExcludedContactModal()">👥 Pilih dari Daftar Kontak</button>
+     <div id="excludedContactsReadonlyList" class="excluded-list-box">
+       <div style="padding: 16px; text-align: center; color: #64748b; font-size: 0.85rem;">Belum ada kontak yang dikecualikan.</div>
      </div>
-     <textarea id="excludedNumbersInput" rows="3" oninput="markExcludedDirty()" placeholder="Contoh:&#10;081234567890&#10;085299887766, 628114455667"></textarea>
-     <div class="var-hint">Format bebas (<code>0812...</code> atau <code>62812...</code>), sistem otomatis menyamakan format nomornya.</div>
 
-     <div style="margin-top: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-       <button type="button" id="btnSaveExcludedNumbers" class="danger">💾 Simpan Daftar Pengecualian</button>
-       <small id="excludedUnsavedHint" style="color: #d97706; font-weight: 600; display: none;">● Perubahan daftar nomor belum disimpan</small>
+     <div class="excluded-manual-bar">
+       <input type="text" id="manualExcludedInput" placeholder="Tambah nomor manual (contoh: 081234567890)..." onkeydown="if (event.key === 'Enter') { event.preventDefault(); addManualExcludedContact(); }" />
+       <button type="button" class="danger sm" onclick="addManualExcludedContact()">+ Tambah Nomor</button>
      </div>
    </div>
 
@@ -903,7 +938,7 @@ let bcHistoryRowsCache = [];
 let cachedReportMetrics = null;
 let isAiFormDirty = false;
 let isOffHoursDirty = false;
-let isExcludedDirty = false;
+let excludedNumbersList = [];
 let selectedExcludedSet = new Set();
 
 function switchTab(tabId) {
@@ -913,7 +948,9 @@ function switchTab(tabId) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === targetId));
   try { localStorage.setItem(ACTIVE_TAB_KEY, targetId); } catch (_) {}
 
-  if (targetId === 'tab-broadcast' && contactsCache.length === 0) loadContacts(true);
+  if ((targetId === 'tab-broadcast' || targetId === 'tab-autoreply') && contactsCache.length === 0) {
+    loadContacts(true);
+  }
   if (targetId === 'tab-reports') loadReports();
 }
 
@@ -1012,6 +1049,7 @@ async function pollState() {
       document.getElementById('syncStatusPill').textContent = `SQLite Lokal • Sinkron ${formatWitaTime(cfg.last_synced_at)} WITA`;
     }
 
+    rawLogsCache = data.recentLogs || [];
     currentRules = data.rules || [];
     renderRulesList();
     populateAiForm(cfg);
@@ -1019,7 +1057,6 @@ async function pollState() {
     populateExcludedForm(cfg);
 
     renderAdminQueue(data.adminQueue || []);
-    rawLogsCache = data.recentLogs || [];
     renderGroupedWhatsAppView();
 
     bcCampaignsCache = data.broadcasts || [];
@@ -1231,6 +1268,9 @@ async function loadContacts(force = false) {
   const data = await apiFetch('/api/contacts');
   contactsCache = data.contacts || [];
   document.getElementById('contactCountPill').textContent = `${contactsCache.length.toLocaleString('id-ID')} Kontak`;
+  if (excludedNumbersList.length > 0) {
+    renderExcludedContactsList();
+  }
 }
 
 function insertBroadcastSample() {
@@ -1486,60 +1526,119 @@ function insertOffHoursSample() {
   markOffHoursDirty();
 }
 
-function markExcludedDirty() {
-  isExcludedDirty = true;
-  document.getElementById('excludedUnsavedHint').style.display = 'inline';
+// --- DAFTAR KONTAK PENGECUALIAN (READ-ONLY DENGAN NAMA + HAPUS PER ITEM) ---
+function resolveContactName(phone) {
+  const norm = normalizePhone(phone);
+  if (!norm) return '';
+
+  const foundContact = contactsCache.find(c => normalizePhone(c.phone) === norm);
+  if (foundContact && foundContact.name && !String(foundContact.name).startsWith('+')) {
+    return String(foundContact.name).trim();
+  }
+
+  const foundLog = rawLogsCache.find(
+    l => normalizePhone(l.sender_number) === norm && l.sender_name && !String(l.sender_name).startsWith('+')
+  );
+  if (foundLog) {
+    return String(foundLog.sender_name).trim();
+  }
+
+  return '';
 }
 
-function updateExcludedCountBadge(rawStr) {
-  const nums = String(rawStr || '')
-    .split(/[\s,;\n]+/)
-    .map(normalizePhone)
-    .filter(Boolean);
-  const uniqueCount = new Set(nums).size;
-  document.getElementById('excludedCountPill').textContent = `${uniqueCount} Nomor`;
+function renderExcludedContactsList() {
+  document.getElementById('excludedCountPill').textContent = `${excludedNumbersList.length} Kontak`;
+  const boxEl = document.getElementById('excludedContactsReadonlyList');
+
+  if (excludedNumbersList.length === 0) {
+    boxEl.innerHTML =
+      '<div style="padding: 16px; text-align: center; color: #64748b; font-size: 0.85rem;">Belum ada kontak yang dikecualikan.</div>';
+    return;
+  }
+
+  boxEl.innerHTML = excludedNumbersList.map(phone => {
+    const resolvedName = resolveContactName(phone);
+    const displayName = resolvedName || 'Kontak Belum Bernama';
+    const initials = (resolvedName || 'WA').replace(/[^a-zA-Z0-9]/g, '').slice(0, 2).toUpperCase() || 'WA';
+
+    return `
+      <div class="excluded-item-row">
+        <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
+          <div class="wa-avatar" style="width: 34px; height: 34px; font-size: 0.78rem; background: ${resolvedName ? '#16a34a' : '#64748b'};">${escapeHtml(initials)}</div>
+          <div style="min-width: 0;">
+            <div style="font-weight: 700; font-size: 0.88rem; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(displayName)}</div>
+            <div style="font-size: 0.76rem; color: #64748b;">+${escapeHtml(phone)}</div>
+          </div>
+        </div>
+        <button type="button" class="danger sm" onclick="removeExcludedContact('${escapeHtml(phone)}')" title="Hapus dari daftar pengecualian">🗑️ Hapus</button>
+      </div>`;
+  }).join('');
 }
 
 function populateExcludedForm(cfg) {
-  updateExcludedCountBadge(cfg.excluded_numbers);
-  if (isExcludedDirty) return;
-  const inputEl = document.getElementById('excludedNumbersInput');
-  if (document.activeElement !== inputEl) {
-    inputEl.value = cfg.excluded_numbers || '';
-  }
-}
-
-document.getElementById('btnSaveExcludedNumbers').addEventListener('click', async () => {
-  const raw = document.getElementById('excludedNumbersInput').value;
-  const normalizedList = Array.from(
+  const parsed = Array.from(
     new Set(
-      raw
+      String(cfg.excluded_numbers || '')
         .split(/[\s,;\n]+/)
         .map(normalizePhone)
         .filter(Boolean)
     )
-  ).join('\n');
+  );
 
-  await apiFetch('/api/config', {
-    method: 'POST',
-    body: JSON.stringify({ excluded_numbers: normalizedList })
-  });
+  if (parsed.length > 0 && contactsCache.length === 0) {
+    loadContacts(true).catch(() => {});
+  }
 
-  document.getElementById('excludedNumbersInput').value = normalizedList;
-  updateExcludedCountBadge(normalizedList);
-  isExcludedDirty = false;
-  document.getElementById('excludedUnsavedHint').style.display = 'none';
-  alert('Daftar nomor pengecualian berhasil disimpan!');
-});
+  excludedNumbersList = parsed;
+  renderExcludedContactsList();
+}
+
+async function removeExcludedContact(phone) {
+  const norm = normalizePhone(phone);
+  if (!norm) return;
+  const updated = excludedNumbersList.filter(p => p !== norm);
+  excludedNumbersList = updated;
+  renderExcludedContactsList();
+
+  try {
+    await apiFetch('/api/config', {
+      method: 'POST',
+      body: JSON.stringify({ excluded_numbers: updated.join('\n') })
+    });
+  } catch (err) {
+    alert(`Gagal menghapus kontak dari pengecualian: ${err.message}`);
+    pollState();
+  }
+}
+
+async function addManualExcludedContact() {
+  const input = document.getElementById('manualExcludedInput');
+  const norm = normalizePhone(input.value);
+  if (!norm) return alert('Masukkan nomor WhatsApp yang valid (contoh: 081234567890).');
+  if (excludedNumbersList.includes(norm)) {
+    input.value = '';
+    return alert('Kontak tersebut sudah ada dalam daftar pengecualian.');
+  }
+
+  const updated = [...excludedNumbersList, norm];
+  excludedNumbersList = updated;
+  input.value = '';
+  renderExcludedContactsList();
+
+  try {
+    await apiFetch('/api/config', {
+      method: 'POST',
+      body: JSON.stringify({ excluded_numbers: updated.join('\n') })
+    });
+  } catch (err) {
+    alert(`Gagal menambahkan nomor: ${err.message}`);
+    pollState();
+  }
+}
 
 // --- MODAL PILIH KONTAK UNTUK DAFTAR PENGECUALIAN ---
 async function openExcludedContactModal() {
-  const currentRaw = document.getElementById('excludedNumbersInput').value;
-  const currentNums = currentRaw
-    .split(/[\s,;\n]+/)
-    .map(normalizePhone)
-    .filter(Boolean);
-  selectedExcludedSet = new Set(currentNums);
+  selectedExcludedSet = new Set(excludedNumbersList);
 
   document.getElementById('excludedModalSearchInput').value = '';
   document.getElementById('excludedModalFilterSelect').value = 'all';
@@ -1581,7 +1680,7 @@ function getMergedModalContacts() {
   }
   for (const p of selectedExcludedSet) {
     if (!map.has(p)) {
-      map.set(p, { phone: p, name: '', source: 'manual' });
+      map.set(p, { phone: p, name: resolveContactName(p), source: 'manual' });
     }
   }
   return Array.from(map.values()).sort((a, b) => {
@@ -1620,7 +1719,7 @@ function getFilteredModalContacts() {
 
 function updateExcludedModalCounters(filteredCount) {
   document.getElementById('excludedModalResultInfo').textContent = `${filteredCount} kontak ditampilkan`;
-  document.getElementById('excludedModalSelectedCount').textContent = `${selectedExcludedSet.size} Nomor Dipilih`;
+  document.getElementById('excludedModalSelectedCount').textContent = `${selectedExcludedSet.size} Kontak Dipilih`;
 }
 
 function toggleExcludedContactSelection(phone, checked, checkboxEl) {
@@ -1632,7 +1731,7 @@ function toggleExcludedContactSelection(phone, checked, checkboxEl) {
   if (checkboxEl) {
     checkboxEl.closest('.contact-pick-item')?.classList.toggle('selected', checked);
   }
-  document.getElementById('excludedModalSelectedCount').textContent = `${selectedExcludedSet.size} Nomor Dipilih`;
+  document.getElementById('excludedModalSelectedCount').textContent = `${selectedExcludedSet.size} Kontak Dipilih`;
 }
 
 function toggleSelectFilteredExcluded(shouldSelect) {
@@ -1681,16 +1780,14 @@ async function applyExcludedModalSelection() {
   btn.textContent = 'Menyimpan...';
 
   try {
-    const normalizedList = Array.from(selectedExcludedSet).join('\n');
+    const updatedList = Array.from(selectedExcludedSet);
     await apiFetch('/api/config', {
       method: 'POST',
-      body: JSON.stringify({ excluded_numbers: normalizedList })
+      body: JSON.stringify({ excluded_numbers: updatedList.join('\n') })
     });
 
-    document.getElementById('excludedNumbersInput').value = normalizedList;
-    updateExcludedCountBadge(normalizedList);
-    isExcludedDirty = false;
-    document.getElementById('excludedUnsavedHint').style.display = 'none';
+    excludedNumbersList = updatedList;
+    renderExcludedContactsList();
     closeExcludedContactModal();
   } catch (err) {
     alert(`Gagal menyimpan daftar pengecualian: ${err.message}`);
