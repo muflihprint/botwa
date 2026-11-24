@@ -35,6 +35,58 @@
  button.ai-btn:hover { background: #6d28d9; }
  button.sm, .btn-link.sm { padding: 7px 11px; font-size: 0.8rem; }
 
+ .wa-media-wrap { margin-bottom: 6px; }
+ .wa-media-img {
+   max-width: 230px;
+   max-height: 230px;
+   border-radius: 7px;
+   display: block;
+   cursor: pointer;
+   object-fit: cover;
+   border: 1px solid rgba(15, 23, 42, 0.12);
+   background: #f8fafc;
+ }
+ .wa-media-bar {
+   display: flex;
+   gap: 6px;
+   flex-wrap: wrap;
+   margin-top: 5px;
+ }
+ .wa-doc-card {
+   background: rgba(15, 23, 42, 0.05);
+   border: 1px solid rgba(15, 23, 42, 0.14);
+   border-radius: 8px;
+   padding: 8px 10px;
+   margin-bottom: 6px;
+   min-width: 210px;
+ }
+ .wa-doc-title {
+   font-weight: 700;
+   font-size: 0.82rem;
+   color: #0f172a;
+   word-break: break-word;
+   display: flex;
+   align-items: center;
+   gap: 6px;
+ }
+ .wa-media-btn {
+   background: #ffffff;
+   color: #0f172a;
+   border: 1px solid #cbd5e1;
+   border-radius: 6px;
+   padding: 4px 9px;
+   font-size: 0.74rem;
+   font-weight: 700;
+   cursor: pointer;
+   text-decoration: none;
+   display: inline-flex;
+   align-items: center;
+   gap: 4px;
+ }
+ .wa-media-btn:hover { background: #f1f5f9; }
+ .wa-media-btn.primary { background: #16a34a; color: #ffffff; border-color: #16a34a; }
+ .wa-media-btn.primary:hover { background: #15803d; }
+
  .server-bar {
    background: #0f172a;
    color: #f8fafc;
@@ -935,6 +987,23 @@
   </div>
 </div>
 
+<!-- MODAL PREVIEW GAMBAR & PDF -->
+<div id="mediaPreviewModal" class="modal-backdrop hidden" onclick="if (event.target === this) closeMediaPreviewModal()">
+  <div class="modal-box" style="max-width: 880px; height: 86vh;" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div style="min-width: 0;">
+        <h3 id="mediaPreviewTitle" style="margin: 0; font-size: 0.98rem; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Preview Lampiran</h3>
+        <small id="mediaPreviewSub" style="color: #64748b;">Lampiran Chat WhatsApp</small>
+      </div>
+      <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
+        <button type="button" id="btnDownloadPreviewMedia" class="sm">⬇️ Unduh File</button>
+        <button type="button" class="secondary sm" onclick="closeMediaPreviewModal()" aria-label="Tutup">✕</button>
+      </div>
+    </div>
+    <div id="mediaPreviewBody" class="modal-body" style="padding: 10px; display: flex; align-items: center; justify-content: center; background: #0f172a;"></div>
+  </div>
+</div>
+
 <script>
 const STORAGE_URL_KEY = 'wa_local_server_url';
 const STORAGE_SECRET_KEY = 'wa_local_server_secret';
@@ -1270,6 +1339,120 @@ function scrollChatToBottom() {
   c.scrollTop = c.scrollHeight;
 }
 
+function resolveMediaFullUrl(mediaUrl) {
+  if (!mediaUrl) return '';
+  if (/^https?:\/\//i.test(mediaUrl)) return mediaUrl;
+  return `${SERVER_URL}${mediaUrl.startsWith('/') ? '' : '/'}${mediaUrl}`;
+}
+
+function stripRedundantMediaPrefix(text, hasMediaUrl) {
+  if (!text || !hasMediaUrl) return text || '';
+  return String(text)
+    .replace(/^\[(Gambar|Video|Dokumen:[^\]]+|Voice Note|Audio|Stiker)\]\s*/i, '')
+    .trim();
+}
+
+function buildChatMediaHtml(log) {
+  if (!log.media_url) return '';
+  const fullUrl = resolveMediaFullUrl(log.media_url);
+  const fileName = log.media_filename || log.media_url.split('/').pop() || 'lampiran';
+  const mime = String(log.media_mimetype || '').toLowerCase();
+  const isPdf = mime === 'application/pdf' || /\.pdf$/i.test(fileName);
+
+  const safeUrl = escapeHtml(fullUrl);
+  const safeName = escapeHtml(fileName);
+
+  if (log.media_type === 'image' || log.media_type === 'sticker') {
+    return `
+      <div class="wa-media-wrap">
+        <img
+          src="${safeUrl}"
+          alt="${safeName}"
+          class="wa-media-img"
+          loading="lazy"
+          onclick="openMediaPreview('${safeUrl}', '${safeName}', 'image')"
+        />
+        <div class="wa-media-bar">
+          <button type="button" class="wa-media-btn" onclick="openMediaPreview('${safeUrl}', '${safeName}', 'image')">🔍 Perbesar</button>
+          <button type="button" class="wa-media-btn primary" onclick="downloadChatMedia('${safeUrl}', '${safeName}')">⬇️ Unduh</button>
+        </div>
+      </div>`;
+  }
+
+  if (log.media_type === 'video') {
+    return `
+      <div class="wa-media-wrap">
+        <video src="${safeUrl}" controls style="max-width: 240px; max-height: 220px; border-radius: 7px; display: block;"></video>
+        <div class="wa-media-bar">
+          <button type="button" class="wa-media-btn primary" onclick="downloadChatMedia('${safeUrl}', '${safeName}')">⬇️ Unduh Video</button>
+        </div>
+      </div>`;
+  }
+
+  if (log.media_type === 'audio') {
+    return `
+      <div class="wa-media-wrap">
+        <audio src="${safeUrl}" controls style="max-width: 240px; height: 36px; display: block;"></audio>
+        <div class="wa-media-bar">
+          <button type="button" class="wa-media-btn" onclick="downloadChatMedia('${safeUrl}', '${safeName}')">⬇️ Unduh Audio</button>
+        </div>
+      </div>`;
+  }
+
+  return `
+    <div class="wa-doc-card">
+      <div class="wa-doc-title">
+        <span>${isPdf ? '📕' : '📄'}</span>
+        <span>${safeName}</span>
+      </div>
+      <div class="wa-media-bar">
+        ${isPdf ? `<button type="button" class="wa-media-btn" onclick="openMediaPreview('${safeUrl}', '${safeName}', 'pdf')">👁️ Preview PDF</button>` : ''}
+        <button type="button" class="wa-media-btn primary" onclick="downloadChatMedia('${safeUrl}', '${safeName}')">⬇️ Unduh</button>
+      </div>
+    </div>`;
+}
+
+function openMediaPreview(url, filename, kind) {
+  document.getElementById('mediaPreviewTitle').textContent = filename || 'Preview Lampiran';
+  document.getElementById('mediaPreviewSub').textContent =
+    kind === 'pdf' ? 'Preview Dokumen PDF' : 'Preview Gambar Lampiran';
+
+  const dlBtn = document.getElementById('btnDownloadPreviewMedia');
+  dlBtn.onclick = () => downloadChatMedia(url, filename);
+
+  const body = document.getElementById('mediaPreviewBody');
+  if (kind === 'pdf') {
+    body.innerHTML = `<iframe src="${escapeHtml(url)}" style="width: 100%; height: 100%; border: none; border-radius: 8px; background: #fff;"></iframe>`;
+  } else {
+    body.innerHTML = `<img src="${escapeHtml(url)}" alt="${escapeHtml(filename)}" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px;" />`;
+  }
+
+  document.getElementById('mediaPreviewModal').classList.remove('hidden');
+}
+
+function closeMediaPreviewModal() {
+  document.getElementById('mediaPreviewModal').classList.add('hidden');
+  document.getElementById('mediaPreviewBody').innerHTML = '';
+}
+
+async function downloadChatMedia(url, filename) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename || 'lampiran_wa';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+  } catch (_) {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+}
+
 function renderChatMessages(thread) {
   document.getElementById('waChatHeader').classList.remove('hidden');
   document.getElementById('waHeaderName').textContent = thread.name;
@@ -1294,19 +1477,28 @@ function renderChatMessages(thread) {
       lastDate = dk;
       html += `<div class="wa-date-divider">${escapeHtml(formatWitaDateLabel(dk))}</div>`;
     }
-    if (log.incoming) {
+
+    const mediaHtml = buildChatMediaHtml(log);
+
+    if (log.incoming || (mediaHtml && log.log_type !== 'admin_direct')) {
+      const captionText = stripRedundantMediaPrefix(log.incoming, Boolean(log.media_url));
       html += `
         <div class="wa-bubble in">
-          ${escapeHtml(log.incoming)}
+          ${mediaHtml}
+          ${captionText ? `<div>${escapeHtml(captionText)}</div>` : ''}
           <div class="wa-bubble-foot">${formatWitaTime(log.incoming_at || log.created_at)}</div>
         </div>`;
     }
+
     if (log.reply) {
       const isAdmin = log.log_type === 'admin_direct';
+      const replyMediaHtml = isAdmin && !log.incoming ? mediaHtml : '';
+      const replyText = stripRedundantMediaPrefix(log.reply, Boolean(replyMediaHtml));
       html += `
         <div class="wa-bubble ${isAdmin ? 'out-admin' : 'out-bot'}">
           <span class="wa-role-tag ${isAdmin ? 'admin' : 'bot'}">${isAdmin ? '👤 Admin' : '🤖 Auto-Reply / AI'}</span>
-          ${escapeHtml(log.reply)}
+          ${replyMediaHtml}
+          ${replyText ? `<div>${escapeHtml(replyText)}</div>` : ''}
           <div class="wa-bubble-foot">${formatWitaTime(log.created_at)}</div>
         </div>`;
     }
@@ -1911,8 +2103,17 @@ async function applyExcludedModalSelection() {
 }
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && !document.getElementById('excludedContactModal').classList.contains('hidden')) {
-    closeExcludedContactModal();
+  if (e.key === 'Escape') {
+    const mediaModal = document.getElementById('mediaPreviewModal');
+    if (mediaModal && !mediaModal.classList.contains('hidden')) {
+      closeMediaPreviewModal();
+      return;
+    }
+
+    const excludedModal = document.getElementById('excludedContactModal');
+    if (excludedModal && !excludedModal.classList.contains('hidden')) {
+      closeExcludedContactModal();
+    }
   }
 });
 
