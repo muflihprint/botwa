@@ -623,16 +623,41 @@
        <div>
          <label for="aiModelSelect">Model Google Gemini</label>
          <select id="aiModelSelect" onchange="markAiFormDirty()">
-          <option value="gemini-3.8-flash" selected>gemini-3.8-flash (Terbaru, Cerdas & Cepat — Rekomendasi)</option>
-          <option value="gemini-3.8-flash-lite">gemini-3.8-flash-lite (Super Ringan & Hemat)</option>
-        </select>
+           <option value="gemini-3.8-flash" selected>gemini-3.8-flash (Terbaru, Cerdas & Cepat — Rekomendasi)</option>
+           <option value="gemini-3.8-flash-lite">gemini-3.8-flash-lite (Super Ringan & Hemat)</option>
+         </select>
        </div>
 
        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 0.75rem;">
-         <label for="aiSystemPromptInput" style="margin: 0;">Instruksi Tambahan & Gaya Bahasa AI (Opsional)</label>
-         <button type="button" class="secondary sm" onclick="insertAiPromptSample()">✨ Isi Contoh Gaya Bahasa</button>
+         <label for="aiSystemPromptInput" style="margin: 0;">Aturan Dasar & Gaya Bahasa AI</label>
+         <button type="button" class="secondary sm" onclick="fillDefaultSystemPrompt()">
+           🔄 Reset Template Aturan
+         </button>
        </div>
-       <textarea id="aiSystemPromptInput" rows="5" oninput="markAiFormDirty()"></textarea>
+       <textarea
+         id="aiSystemPromptInput"
+         rows="10"
+         style="font-family: monospace; font-size: 0.85rem;"
+         oninput="markAiFormDirty()"
+         placeholder="Aturan perilaku AI, cara baca katalog harga, dan syarat pengalihan ke admin..."
+       ></textarea>
+
+       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 0.75rem;">
+         <label for="aiBusinessKnowledgeInput" style="margin: 0;">Pengetahuan & Aturan Khusus Bisnis (Alamat, Promo, S&amp;K)</label>
+         <button type="button" class="secondary sm" onclick="fillDefaultBusinessKnowledge()">
+           🔄 Reset Template Bisnis
+         </button>
+       </div>
+       <textarea
+         id="aiBusinessKnowledgeInput"
+         rows="9"
+         style="font-family: monospace; font-size: 0.85rem;"
+         oninput="markAiFormDirty()"
+         placeholder="Masukkan rincian promo cetak, syarat undangan, alamat toko, jam buka, nomor rekening..."
+       ></textarea>
+       <div class="var-hint">
+         Edit bagian ini kapan saja dari browser untuk memperbarui promo, S&amp;K, atau info toko tanpa menyentuh kode server.
+       </div>
      </div>
 
      <div style="margin-top: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
@@ -1502,20 +1527,68 @@ function populateAiForm(cfg) {
   if (isAiFormDirty) return updateAiLiveBadge();
   document.getElementById('aiEnabledCheck').checked = Boolean(cfg.ai_enabled);
   if (cfg.ai_model) document.getElementById('aiModelSelect').value = cfg.ai_model;
+
+  // 1. Saat memuat config dari server:
   if (document.activeElement !== document.getElementById('aiSystemPromptInput')) {
     document.getElementById('aiSystemPromptInput').value = cfg.ai_system_prompt || '';
   }
+  if (document.activeElement !== document.getElementById('aiBusinessKnowledgeInput')) {
+    document.getElementById('aiBusinessKnowledgeInput').value = cfg.ai_business_knowledge || '';
+  }
+
   updateAiLiveBadge();
 }
 
-function insertAiPromptSample() {
-  document.getElementById('aiSystemPromptInput').value =
-    'Gunakan gaya bahasa yang ramah, sopan, singkat, dan jelas dengan sapaan "Kak".\n' +
-    'Jawablah berdasarkan daftar pesan auto-reply yang tersedia. Jangan mengarang harga.\n' +
-    'Jika pelanggan mengirim file cetak, revisi desain, atau ingin bicara dengan admin, akhiri balasan dengan [ALIHKAN_ADMIN].';
+// 2. Fungsi template Aturan Dasar AI
+function fillDefaultSystemPrompt() {
+  const el = document.getElementById('aiSystemPromptInput');
+  if (el.value.trim() && !confirm('Timpa isi Aturan Dasar AI saat ini dengan template standar?')) return;
+  el.value = `Kamu adalah asisten Customer Service WhatsApp resmi dari Muflih Print (percetakan & desain grafis di Makassar).
+Tugasmu membalas chat pelanggan dengan ramah, sopan, jelas, ringkas, dan natural dalam bahasa Indonesia.
+Gunakan sapaan "Kak" atau nama pelanggan jika tersedia.
+
+=== ATURAN PENGGUNAAN KATALOG & HARGA ===
+1. Selalu periksa seluruh daftar pada KATALOG PRODUK LIVE (DATABASE) maupun PENGETAHUAN & ATURAN KHUSUS BISNIS sebelum menjawab.
+2. Jika pelanggan bertanya berdasarkan nominal harga (contoh: "ada harga 1500", "yang harga 2000", dll), cari semua produk di katalog yang harga normal atau harga promonya sesuai nominal tersebut, sebutkan maksimal 5-8 contoh produk/kode beserta kategori dan S&K promonya (misal: pemesanan di bawah 300 pcs dikenakan tambahan biaya desain), lalu tawarkan link katalog lengkap (https://muflihprint.vercel.app) jika ingin melihat semua model.
+3. Jangan langsung mengalihkan ke admin jika produk atau harga tersebut tercantum di katalog.
+4. Bedakan antara *Meminta Nomor Rekening* dan *Mengirimkan Bukti Transfer*: jika meminta norek, berikan nomor rekening BCA resmi; jika mengirim bukti transfer atau konfirmasi sudah selesai ("bukti transfer", "sudah tf", "sudah di", "sudah yah"), ucapkan terima kasih bahwa konfirmasi/kiriman telah diteruskan ke Admin untuk dicek dan akhiri balasan dengan [ALIHKAN_ADMIN].
+
+=== ATURAN PENGALIHAN KE ADMIN ===
+Gunakan kata kunci [ALIHKAN_ADMIN] HANYA jika:
+(a) Pelanggan komplain/marah,
+(b) Negosiasi harga grosir di luar daftar,
+(c) Menanyakan status pesanan yang sedang diproses,
+(d) Mengirimkan bukti transfer / konfirmasi pembayaran, atau
+(e) Menanyakan layanan custom (spanduk, stiker ukuran khusus, nota, dll) yang sama sekali tidak ada di katalog maupun pengetahuan bisnis.
+Jangan mengarang harga, promo, atau nomor rekening di luar data yang diberikan.`;
   markAiFormDirty();
 }
 
+// 3. Fungsi template Pengetahuan & Aturan Khusus Bisnis
+function fillDefaultBusinessKnowledge() {
+  const el = document.getElementById('aiBusinessKnowledgeInput');
+  if (el.value.trim() && !confirm('Timpa isi Pengetahuan Bisnis saat ini dengan template standar?')) return;
+  el.value = `1. CETAK DOKUMEN PDF (KERTAS HVS A4 / F4):
+- Hitam Putih & Warna Ringan (<= 20% area warna): Rp 200 / lembar
+  *Ketentuan Promo:* 5 lembar pertama dikenakan paket Rp 1.000, lembar ke-6 dan seterusnya Rp 200 / lembar.
+- Warna Sedang (> 20% s.d. 50% area warna): Rp 500 / lembar
+  *Ketentuan Promo:* 5 lembar pertama dikenakan paket Rp 1.000, lembar ke-6 dan seterusnya Rp 500 / lembar.
+- Warna Penuh (> 50% area warna): Rp 1.000 / lembar.
+- Cara Cek Total Harga Otomatis: Arahkan pelanggan mengunggah file PDF di https://muflihprint.vercel.app (sistem otomatis menghitung jumlah halaman hitam putih & warna beserta total harganya).
+
+2. UNDANGAN CETAK:
+- Katalog model dan harga per seri tersedia di https://muflihprint.vercel.app
+- Ketentuan Promo (S&K): Pemesanan di bawah 300 pcs dikenakan tambahan biaya desain.
+
+3. INFORMASI TOKO & PEMBAYARAN:
+- Alamat Toko: Jl. Barawaja No. 19, Makassar (https://maps.app.goo.gl/YM1jjq26jmHwPu876)
+- Kontak WA Admin: 081574009621 (https://wa.link/231dzo)
+- Jam Operasional: Senin – Sabtu pukul 08.00 – 18.00 WITA (Ahad Libur)
+- Rekening Resmi: BCA 3901264081 a.n. MAULVI DZIBYAN SYAIB`;
+  markAiFormDirty();
+}
+
+// 4. Saat mengirim payload simpan ke server (di index.html endpoint-nya /api/config):
 document.getElementById('btnSaveAiConfig').addEventListener('click', async () => {
   const ai_enabled = document.getElementById('aiEnabledCheck').checked;
   await apiFetch('/api/config', {
@@ -1524,7 +1597,8 @@ document.getElementById('btnSaveAiConfig').addEventListener('click', async () =>
       ai_enabled,
       ai_mode: ai_enabled ? 'ai_only' : 'manual',
       ai_model: document.getElementById('aiModelSelect').value,
-      ai_system_prompt: document.getElementById('aiSystemPromptInput').value.trim()
+      ai_system_prompt: document.getElementById('aiSystemPromptInput').value.trim(),
+      ai_business_knowledge: document.getElementById('aiBusinessKnowledgeInput').value.trim()
     })
   });
   isAiFormDirty = false;
