@@ -601,8 +601,8 @@
    <div class="card" style="border-color: #c4b5fd;">
      <div class="header-bar" style="margin-bottom: 0.75rem;">
        <div>
-         <h2 style="margin: 0;">🧠 Opsi Balasan AI (Google Gemini)</h2>
-         <small style="color: #64748b;">Pilih apakah auto-reply dijawab oleh AI atau aturan kata kunci manual</small>
+         <h2 style="margin: 0;">🧠 Opsi Balasan AI (Groq + Google Gemini)</h2>
+         <small style="color: #64748b;">Otomatis menggunakan Groq (Utama) dengan cadangan Google Gemini &amp; OpenRouter gratis</small>
        </div>
        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
          <span id="aiRulesRefCountPill" class="sync-pill">📚 0 Aturan Auto-Reply</span>
@@ -621,10 +621,17 @@
 
      <div id="aiConfigFieldsBox" class="hidden" style="margin-top: 10px;">
        <div>
-         <label for="aiModelSelect">Model Google Gemini</label>
+         <label for="aiModelSelect">Prioritas Model AI Utama</label>
          <select id="aiModelSelect" onchange="markAiFormDirty()">
-           <option value="gemini-3.8-flash" selected>gemini-3.8-flash (Terbaru, Cerdas & Cepat — Rekomendasi)</option>
-           <option value="gemini-3.8-flash-lite">gemini-3.8-flash-lite (Super Ringan & Hemat)</option>
+           <optgroup label="⚡ Groq AI (Utama — Super Cepat &amp; Gratis)">
+             <option value="qwen/qwen3.8-27b" selected>qwen/qwen3.8-27b (Terbaik untuk Bahasa Indonesia — Rekomendasi)</option>
+             <option value="openai/gpt-oss-120b">openai/gpt-oss-120b (Akurasi Katalog &amp; Harga Tinggi)</option>
+             <option value="openai/gpt-oss-20b">openai/gpt-oss-20b (Ringan &amp; Hemat Kuota Token)</option>
+           </optgroup>
+           <optgroup label="✨ Google Gemini (Cadangan Otomatis)">
+             <option value="gemini-3.8-flash">gemini-3.8-flash (Konteks 1 Juta Token)</option>
+             <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (Super Ringan &amp; Hemat)</option>
+           </optgroup>
          </select>
        </div>
 
@@ -1513,7 +1520,7 @@ function updateAiLiveBadge() {
     pill.classList.add('ai');
     pill.textContent = '🧠 AI Aktif';
     desc.classList.remove('off');
-    desc.innerHTML = '<strong>Mode AI Aktif:</strong> Semua balasan dijawab otomatis oleh Google Gemini berdasarkan referensi daftar pesan auto-reply di bawah.';
+    desc.innerHTML = '<strong>Mode AI Aktif:</strong> Semua balasan dijawab otomatis oleh AI (Groq &rarr; Cadangan Gemini/OpenRouter) berdasarkan katalog produk Supabase &amp; referensi aturan di bawah.';
   } else {
     pill.classList.remove('ai');
     pill.textContent = '⚪ AI Nonaktif';
