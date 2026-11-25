@@ -663,20 +663,16 @@
        <div>
          <label for="aiModelSelect">Prioritas Model AI Utama</label>
          <select id="aiModelSelect" onchange="markAiFormDirty()">
-           <optgroup label="💎 OpenAI API (Utama — Stabil &amp; Akurat)">
-             <option value="gpt-4o-mini" selected>gpt-4o-mini (Paling Stabil &amp; Hemat — Rekomendasi)</option>
-             <option value="gpt-4.1-mini">gpt-4.1-mini (Pemahaman Konteks Tinggi)</option>
-           </optgroup>
-           <optgroup label="⚡ Groq AI (Cadangan 1 — Super Cepat &amp; Gratis)">
-             <option value="qwen/qwen3.8-27b">qwen/qwen3.8-27b (Terbaik untuk Bahasa Indonesia)</option>
-             <option value="openai/gpt-oss-120b">openai/gpt-oss-120b (Akurasi Katalog &amp; Harga Tinggi)</option>
-             <option value="openai/gpt-oss-20b">openai/gpt-oss-20b (Ringan &amp; Hemat Kuota Token)</option>
-           </optgroup>
-           <optgroup label="✨ Google Gemini (Cadangan 2)">
-             <option value="gemini-3.8-flash">gemini-3.8-flash (Konteks 1 Juta Token)</option>
-             <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (Super Ringan &amp; Hemat)</option>
-           </optgroup>
-         </select>
+  <optgroup label="⚡ Groq AI (Utama — Super Cepat & Gratis)">
+    <option value="qwen/qwen3.8-27b" selected>qwen/qwen3.8-27b (Terbaik untuk Bahasa Indonesia)</option>
+    <option value="openai/gpt-oss-120b">openai/gpt-oss-120b (Akurasi Katalog &amp; Harga Tinggi)</option>
+    <option value="openai/gpt-oss-20b">openai/gpt-oss-20b (Ringan &amp; Hemat Kuota Token)</option>
+  </optgroup>
+  <optgroup label="✨ Google Gemini (Cadangan 1)">
+    <option value="gemini-3.8-flash">gemini-3.8-flash (Konteks 1 Juta Token)</option>
+    <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (Super Ringan &amp; Hemat)</option>
+  </optgroup>
+</select>
        </div>
 
        <label for="aiSystemPromptInput">Aturan Dasar & Gaya Bahasa AI</label>
